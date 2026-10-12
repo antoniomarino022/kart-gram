@@ -30,6 +30,7 @@ export class KartRig {
   private blob: THREE.Mesh;
   private owned: { dispose(): void }[] = [];
   private glowing = false;
+  private tail: THREE.Vector3[] = [];
 
   constructor(models: ModelLibrary, loadout: Loadout, envMap: THREE.Texture | null) {
     this.root.rotation.order = "YXZ";
@@ -47,6 +48,7 @@ export class KartRig {
       }
     }
     this.applyPaint(loadout.paint, envMap);
+    this.addRearDetails();
 
     const shieldGeo = new THREE.SphereGeometry(1.3, 18, 12);
     const shieldMat = new THREE.MeshBasicMaterial({ color: "#6fd3ff", transparent: true, opacity: 0.22, depthWrite: false });
@@ -55,11 +57,13 @@ export class KartRig {
     this.shield.visible = false;
     this.pivot.add(this.shield);
 
-    const blobGeo = new THREE.CircleGeometry(0.95, 20).rotateX(-Math.PI / 2);
-    const blobMat = new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.28, depthWrite: false });
+    const blobGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2);
+    const blobMat = new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false });
+    this.owned.push(blobMat.map!);
     this.blob = new THREE.Mesh(blobGeo, blobMat);
     this.blob.position.y = 0.03;
-    this.blob.scale.set(0.75, 1, 1);
+    this.blob.scale.set(0.85, 1, 1.2);
+    this.blob.renderOrder = 1;
     this.root.add(this.blob);
     this.owned.push(shieldGeo, shieldMat, blobGeo, blobMat);
   }
@@ -98,6 +102,38 @@ export class KartRig {
     }
   }
 
+  /**
+   * Fanali rossi emissivi e due scarichi grigi, attaccati al retro del modello (bounding box): vanno con qualunque kart.
+   * I modelli guardano verso -Z, quindi il retro è a z massima.
+   */
+  private addRearDetails() {
+    this.body.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(this.body);
+    if (box.isEmpty()) box.set(new THREE.Vector3(-0.5, 0, -0.8), new THREE.Vector3(0.5, 0.75, 0.8));
+    const w = box.max.x - box.min.x, h = box.max.y - box.min.y;
+    const z = box.max.z;
+    const lightY = box.min.y + h * 0.55, lightX = w * 0.32;
+
+    const lightGeo = new THREE.BoxGeometry(Math.min(0.26, w * 0.24), Math.max(0.07, h * 0.12), 0.06);
+    const lightMat = new THREE.MeshBasicMaterial({ color: "#ff2238" });
+    const pipeGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.22, 8).rotateX(Math.PI / 2);
+    const pipeMat = new THREE.MeshLambertMaterial({ color: "#8d929c" });
+    this.owned.push(lightGeo, lightMat, pipeGeo, pipeMat);
+    for (const side of [-1, 1]) {
+      const l = new THREE.Mesh(lightGeo, lightMat);
+      l.position.set(side * lightX, lightY, z + 0.01);
+      const p = new THREE.Mesh(pipeGeo, pipeMat);
+      p.position.set(side * Math.min(0.2, w * 0.18), box.min.y + h * 0.22, z + 0.06);
+      this.pivot.add(l, p);
+      this.tail.push(new THREE.Vector3(side * lightX, lightY, z + 0.04));
+    }
+  }
+
+  /** Posizione mondo del fanale posteriore (side -1 sinistro, +1 destro). */
+  tailLight(side: -1 | 1, out: THREE.Vector3) {
+    return this.pivot.localToWorld(out.copy(this.tail[side < 0 ? 0 : 1]));
+  }
+
   /** Stato visivo per frame. */
   update(opts: { speed: number; dt: number; time: number; blink: boolean; turbo: boolean; shield: boolean; falling: boolean; spin: boolean }) {
     if (opts.spin) for (const w of this.wheels) w.rotation.x -= (opts.speed * opts.dt) / WHEEL_R;
@@ -125,4 +161,21 @@ export class KartRig {
     this.root.removeFromParent();
     for (const o of this.owned) o.dispose();
   }
+}
+
+/** Ombra morbida: cerchio scuro con bordo sfumato. */
+function blobTexture() {
+  const size = 64;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const r = Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2) / (size / 2);
+      const a = Math.max(0, Math.min(1, (1 - r) / 0.55));
+      data[(y * size + x) * 4 + 3] = Math.round(a * a * 0.42 * 255);
+    }
+  }
+  const tex = new THREE.DataTexture(data, size, size);
+  tex.magFilter = tex.minFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
 }

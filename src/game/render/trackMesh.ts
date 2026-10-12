@@ -85,9 +85,9 @@ export class TrackMeshes {
     const pal = biomeAt(Math.floor(S[i0].s / CONFIG.biomeLength));
     const road = new THREE.Color(pal.road);
     const edge = new THREE.Color(pal.roadEdge);
-    const stripe = new THREE.Color(pal.stripe);
-    const under = road.clone().multiplyScalar(0.55);
-    const side = road.clone().multiplyScalar(0.75);
+    const line = new THREE.Color(pal.roadLine);
+    const under = road.clone().multiplyScalar(0.45);
+    const side = road.clone().multiplyScalar(0.6);
     const white = new THREE.Color("#ffffff");
 
     const top = new Builder();
@@ -97,12 +97,12 @@ export class TrackMeshes {
       const ha = a.width / 2, hb = b.width / 2;
       const dash = Math.floor(a.s / 2) % 2 === 0;
       // superficie: bordo sx | strada | linea centrale | strada | bordo dx
-      top.quad(a, b, -ha, -ha + EDGE, LIFT, LIFT, edge, -hb, -hb + EDGE);
+      top.quad(a, b, -ha, -ha + EDGE, 0, 0, edge, -hb, -hb + EDGE);
       top.quad(a, b, -ha + EDGE, -CENTER_HALF, 0, 0, road, -hb + EDGE, -CENTER_HALF);
-      top.quad(a, b, -CENTER_HALF, CENTER_HALF, dash ? LIFT : 0, dash ? LIFT : 0, dash ? stripe : road);
+      top.quad(a, b, -CENTER_HALF, CENTER_HALF, 0, 0, dash ? line : road);
       top.quad(a, b, CENTER_HALF, ha - EDGE, 0, 0, road, CENTER_HALF, hb - EDGE);
-      top.quad(a, b, ha - EDGE, ha, LIFT, LIFT, edge, hb - EDGE, hb);
-      // lastra: fianchi e fondo
+      top.quad(a, b, ha - EDGE, ha, 0, 0, edge, hb - EDGE, hb);
+      // lastra: fianchi e fondo, più scuri
       top.quad(a, b, -ha, -ha, 0, -SLAB, side, -hb, -hb);
       top.quad(a, b, ha, ha, 0, -SLAB, side, hb, hb);
       top.quad(a, b, -ha, ha, -SLAB, -SLAB, under, -hb, hb);

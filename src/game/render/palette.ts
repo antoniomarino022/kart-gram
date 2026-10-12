@@ -1,33 +1,68 @@
+import * as THREE from "three";
+
+/** Bioma monocromatico: cielo, nebbia, suolo, strada ed edifici sono tinte della stessa famiglia. */
 export interface BiomePalette {
   name: string;
+  /** Cielo in alto (il gradiente scende fino a `horizon`). */
   sky: string;
-  fog: string;
+  /** Orizzonte = colore della nebbia. */
+  horizon: string;
+  /** Piano del suolo molto sotto la strada. */
+  ground: string;
   road: string;
+  /** Linea centrale tratteggiata. */
+  roadLine: string;
+  /** Strisce chiare ai bordi. */
   roadEdge: string;
-  stripe: string;
-  /** Nomi dei modelli decorativi sospesi nel vuoto. */
-  deco: string[];
+  /** Tinte degli edifici, dalla più chiara alla più scura. */
+  buildings: [string, string, string];
+  /** Tinta della luce emisferica (cielo). */
+  light: string;
   /** Moltiplicatore dell'intensità delle luci. */
-  light: number;
+  intensity: number;
 }
 
 export const BIOMES: BiomePalette[] = [
   {
-    name: "Sky City", sky: "#5ab4e6", fog: "#8fcff0", road: "#2f5fd0", roadEdge: "#ffd23f", stripe: "#ffffff",
-    deco: ["deco_city_1", "deco_city_2", "deco_city_3"], light: 1,
+    name: "Sky City", sky: "#3f93e0", horizon: "#a6dcf7", ground: "#68a6e3",
+    road: "#2b5cc4", roadLine: "#8db4f5", roadEdge: "#6f9de6",
+    buildings: ["#8fc6f0", "#6aa6e6", "#4f88d6"], light: "#e6f4ff", intensity: 1,
   },
   {
-    name: "Desert Void", sky: "#f4b56a", fog: "#f8cf98", road: "#a0522d", roadEdge: "#fff1c9", stripe: "#ffffff",
-    deco: ["deco_desert_1", "deco_desert_2", "deco_desert_3"], light: 1.05,
+    name: "Desert Void", sky: "#e58a4c", horizon: "#fad3a0", ground: "#dc985a",
+    road: "#9c4f2b", roadLine: "#eba57a", roadEdge: "#cf8458",
+    buildings: ["#f4c38e", "#e6a16b", "#d1834f"], light: "#fff0dc", intensity: 1,
   },
   {
-    name: "Ice", sky: "#cfe9ff", fog: "#e4f3ff", road: "#7fb3d5", roadEdge: "#1f4e8c", stripe: "#ffffff",
-    deco: ["deco_ice_1", "deco_ice_2", "deco_ice_3"], light: 1,
+    name: "Ice", sky: "#7fc0ea", horizon: "#eaf7ff", ground: "#a6cdec",
+    road: "#5b98c6", roadLine: "#dff2ff", roadEdge: "#a6d2f0",
+    buildings: ["#e2f3fd", "#c2e2f7", "#9fcbec"], light: "#ffffff", intensity: 1,
   },
   {
-    name: "Neon Night", sky: "#14082b", fog: "#24104a", road: "#2b1055", roadEdge: "#ff2bd6", stripe: "#ffffff",
-    deco: ["deco_neon_1", "deco_neon_2", "deco_neon_3"], light: 0.75,
+    name: "Neon Night", sky: "#0c0420", horizon: "#3d1774", ground: "#27104c",
+    road: "#1d0b40", roadLine: "#ff4fd8", roadEdge: "#3fd8ff",
+    buildings: ["#5a2aa6", "#46208a", "#34176d"], light: "#c9a8ff", intensity: 0.85,
   },
 ];
 
 export const biomeAt = (index: number) => BIOMES[((index % BIOMES.length) + BIOMES.length) % BIOMES.length];
+
+/** Colori correnti della scena, interpolati verso il bioma di destinazione. */
+export class SceneColors {
+  readonly sky = new THREE.Color();
+  readonly horizon = new THREE.Color();
+  readonly ground = new THREE.Color();
+  readonly light = new THREE.Color();
+  intensity = 1;
+  private tmp = new THREE.Color();
+
+  constructor(pal: BiomePalette) { this.lerpTo(pal, 1); }
+
+  lerpTo(pal: BiomePalette, t: number) {
+    this.sky.lerp(this.tmp.set(pal.sky), t);
+    this.horizon.lerp(this.tmp.set(pal.horizon), t);
+    this.ground.lerp(this.tmp.set(pal.ground), t);
+    this.light.lerp(this.tmp.set(pal.light), t);
+    this.intensity += (pal.intensity - this.intensity) * t;
+  }
+}

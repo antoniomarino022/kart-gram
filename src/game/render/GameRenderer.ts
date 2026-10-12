@@ -2,11 +2,14 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { GameState } from "../core/sim";
 import { sampleAt } from "../core/track";
-import { Decorations } from "./decorations";
+import { Buildings } from "./buildings";
+import { Environment } from "./environment";
 import { ItemMeshes } from "./itemMeshes";
 import { KartRig, type Loadout } from "./kart";
 import type { ModelLibrary } from "./models";
-import { biomeAt } from "./palette";
+import { biomeAt, SceneColors } from "./palette";
+import { Sparks } from "./sparks";
+import { Streaks } from "./streaks";
 import { TrackMeshes } from "./trackMesh";
 import { Trail } from "./trail";
 
@@ -16,8 +19,16 @@ export { ALL_MODEL_NAMES } from "./models";
 export interface KartPose { x: number; y: number; angle: number; elevation: number }
 
 const HALF_PI = Math.PI / 2;
-const CAM_BACK = 7, CAM_UP = 3.8, LOOK_AHEAD = 8, LOOK_UP = 0.5;
-const FOV = 60, FOV_TURBO = 72;
+/** Camera bassa e vicina (schermo orizzontale): dietro di CAM_BACK, alta CAM_UP, guarda LOOK_AHEAD avanti e LOOK_UP sopra il kart. */
+const CAM_BACK = 4.8, CAM_UP = 2.3, LOOK_AHEAD = 6, LOOK_UP = 0.8;
+/** In verticale (telefono) l'inquadratura è stretta: camera un po' più indietro e FOV più ampio, così il kart resta ~1/3 della larghezza. */
+const CAM_BACK_PORTRAIT = 6.6, CAM_UP_PORTRAIT = 3, FOV_PORTRAIT = 70;
+/** Peso della direzione del kart (il resto è la tangente della strada) nello yaw della camera. */
+const CAM_KART_WEIGHT = 0.3;
+/** La tangente si legge poco più avanti del kart, così la camera anticipa le curve. */
+const TANGENT_AHEAD = 3;
+const FOG_NEAR = 40, FOG_FAR = 280;
+const FOV = 60, FOV_TURBO_BONUS = 12;
 const DRIFT_YAW = 0.35, DRIFT_ROLL = 0.08, DRIFT_EASE_TIME = 0.15;
 
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
@@ -28,23 +39,25 @@ export class GameRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 600);
-  private hemi = new THREE.HemisphereLight("#ffffff", "#8c8ca6", 2);
-  private sun = new THREE.DirectionalLight("#ffffff", 1.6);
+  private hemi = new THREE.HemisphereLight("#ffffff", "#8c8ca6", 2.2);
+  private sun = new THREE.DirectionalLight("#ffffff", 0.9);
   private fog: THREE.Fog;
-  private sky: THREE.Color;
-  private light = 1;
+  private colors: SceneColors;
   private envMap: THREE.Texture | null = null;
 
   private track: TrackMeshes;
   private items: ItemMeshes;
-  private deco: Decorations;
+  private env: Environment;
+  private buildings: Buildings;
   private trail: Trail;
+  private sparks: Sparks;
+  private streaks: Streaks;
   private kart: KartRig;
 
   private time = 0;
   private first = true;
-  private camPos = new THREE.Vector3();
-  private camLook = new THREE.Vector3();
+  private camY = 0;
+  private camLookY = 0;
   private camHeading = 0;
   private fallCamY: number | null = null;
   private fallLookY = 0;
@@ -52,20 +65,22 @@ export class GameRenderer {
   private driftSign = 1;
   private v1 = new THREE.Vector3();
   private v2 = new THREE.Vector3();
+  private v3 = new THREE.Vector3();
+  private v4 = new THREE.Vector3();
   private size = new THREE.Vector2();
-  private targetColor = new THREE.Color();
+  /** 0 = orizzontale, 1 = verticale stretto (da aspect). */
+  private portrait = 0;
 
   constructor(private canvas: HTMLCanvasElement, models: ModelLibrary, loadout: Loadout) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
-    const pal = biomeAt(0);
-    this.sky = new THREE.Color(pal.sky);
-    this.fog = new THREE.Fog(pal.fog, 80, 320);
+    this.colors = new SceneColors(biomeAt(0));
+    this.fog = new THREE.Fog(this.colors.horizon.clone(), FOG_NEAR, FOG_FAR);
     this.scene.fog = this.fog;
-    this.scene.background = this.sky;
 
-    this.sun.position.set(-0.4, 1, 0.3);
+    // luce morbida: emisferica forte + direzionale debole da dietro-sopra (la strada procede verso -z)
+    this.sun.position.set(0.35, 1, 0.8);
     this.scene.add(this.hemi, this.sun);
 
     if (loadout.paint.finish === "metal") {
@@ -77,10 +92,13 @@ export class GameRenderer {
       pmrem.dispose();
     }
 
+    this.env = new Environment(this.scene);
     this.track = new TrackMeshes(this.scene);
     this.items = new ItemMeshes(this.scene, models);
-    this.deco = new Decorations(this.scene, models);
+    this.buildings = new Buildings(this.scene);
     this.trail = new Trail(this.scene, loadout.trailColor, loadout.trailId);
+    this.sparks = new Sparks(this.scene);
+    this.streaks = new Streaks(this.scene);
     this.kart = new KartRig(models, loadout, this.envMap);
     this.scene.add(this.kart.root);
     this.resize();
@@ -92,6 +110,7 @@ export class GameRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
+    this.portrait = Math.max(0, Math.min(1, (1.3 - w / h) / 0.8));
     this.camera.updateProjectionMatrix();
   }
 
@@ -133,57 +152,63 @@ export class GameRenderer {
     });
     root.updateMatrixWorld(true);
 
-    this.updateCamera(x, elev, -y, angle, falling, dt, turbo);
+    const tangent = sampleAt(state.track, k.s + TANGENT_AHEAD).angle;
+    this.updateCamera(x, elev, -y, angle, tangent, falling, dt, turbo);
+    this.env.update(this.colors, this.camera, state.track, k.s, x, -y, dt);
 
     this.track.update(state.track, k.s, state.powerups.wide > 0);
     this.items.update(state, alpha, this.time);
-    this.deco.update(state.track, k.s, dt, this.time);
+    this.buildings.update(state.track, k.s);
 
     this.renderer.getDrawingBufferSize(this.size);
     const pxPerMeter = this.size.y / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
-    this.trail.update(running && k.drifting, this.kart.rearWheel(-1, this.v1), this.kart.rearWheel(1, this.v2), dt, this.time, pxPerMeter);
+    const drifting = running && k.drifting;
+    const left = this.kart.rearWheel(-1, this.v1), right = this.kart.rearWheel(1, this.v2);
+    this.trail.update(drifting, left, right, dt, this.time, pxPerMeter, this.colors.horizon);
+    this.v3.set(-Math.cos(angle), 0, Math.sin(angle)); // retro del kart in coordinate three
+    this.sparks.update(drifting, left, right, this.v3, dt, pxPerMeter);
+    this.streaks.update(
+      this.kart.tailLight(-1, this.v3), this.kart.tailLight(1, this.v4), this.time, dt,
+      drifting || turbo, k.fallDepth === 0,
+    );
 
     this.renderer.render(this.scene, this.camera);
   }
 
   private updateBiome(biome: number, dt: number) {
-    const pal = biomeAt(biome);
-    const t = this.first ? 1 : smooth(3, dt);
-    this.sky.lerp(this.targetColor.set(pal.sky), t);
-    this.fog.color.lerp(this.targetColor.set(pal.fog), t);
-    this.light += (pal.light - this.light) * t;
-    this.hemi.intensity = 2 * this.light;
-    this.sun.intensity = 1.6 * this.light;
+    const c = this.colors;
+    c.lerpTo(biomeAt(biome), this.first ? 1 : smooth(3, dt));
+    this.fog.color.copy(c.horizon);
+    this.hemi.color.copy(c.light);
+    this.hemi.groundColor.copy(c.ground);
+    this.hemi.intensity = 2.2 * c.intensity;
+    this.sun.intensity = 0.9 * c.intensity;
   }
 
-  private updateCamera(kx: number, ky: number, kz: number, angle: number, falling: boolean, dt: number, turbo: boolean) {
-    const kh = this.first ? 1 : smooth(5, dt);
-    this.camHeading += angleDiff(angle, this.camHeading) * kh;
+  /** `angle`: direzione del kart, `tangent`: direzione della strada poco avanti (entrambe in coordinate core). */
+  private updateCamera(kx: number, ky: number, kz: number, angle: number, tangent: number, falling: boolean, dt: number, turbo: boolean) {
+    // yaw: soprattutto la strada, un po' il kart, così in drift la strada davanti resta al centro
+    const target = tangent + angleDiff(angle, tangent) * CAM_KART_WEIGHT;
+    this.camHeading += angleDiff(target, this.camHeading) * (this.first ? 1 : smooth(6, dt));
     const fx = Math.cos(this.camHeading), fz = -Math.sin(this.camHeading);
 
     // in caduta la camera non scende: il kart esce dall'inquadratura
     if (falling) {
-      if (this.fallCamY === null) { this.fallCamY = this.camPos.y; this.fallLookY = this.camLook.y; }
+      if (this.fallCamY === null) { this.fallCamY = this.camY; this.fallLookY = this.camLookY; }
     } else this.fallCamY = null;
 
-    const tx = kx - fx * CAM_BACK, tz = kz - fz * CAM_BACK;
-    const ty = this.fallCamY ?? ky + CAM_UP;
-    const lx = kx + fx * LOOK_AHEAD, lz = kz + fz * LOOK_AHEAD;
-    const ly = this.fallCamY !== null ? this.fallLookY : ky + LOOK_UP;
-
-    const kp = this.first ? 1 : smooth(8, dt);
-    this.camPos.x += (tx - this.camPos.x) * kp;
-    this.camPos.y += (ty - this.camPos.y) * kp;
-    this.camPos.z += (tz - this.camPos.z) * kp;
-    this.camLook.x += (lx - this.camLook.x) * kp;
-    this.camLook.y += (ly - this.camLook.y) * kp;
-    this.camLook.z += (lz - this.camLook.z) * kp;
+    const kh = this.first ? 1 : smooth(8, dt);
+    const up = CAM_UP + (CAM_UP_PORTRAIT - CAM_UP) * this.portrait;
+    this.camY += ((this.fallCamY ?? ky + up) - this.camY) * kh;
+    this.camLookY += ((this.fallCamY !== null ? this.fallLookY : ky + LOOK_UP) - this.camLookY) * kh;
     this.first = false;
 
-    this.camera.position.copy(this.camPos);
-    this.camera.lookAt(this.camLook);
+    // distanza fissa dal kart: la morbidezza viene da yaw e altezza smussati
+    const back = CAM_BACK + (CAM_BACK_PORTRAIT - CAM_BACK) * this.portrait;
+    this.camera.position.set(kx - fx * back, this.camY, kz - fz * back);
+    this.camera.lookAt(kx + fx * LOOK_AHEAD, this.camLookY, kz + fz * LOOK_AHEAD);
 
-    const fov = turbo ? FOV_TURBO : FOV;
+    const fov = FOV + (FOV_PORTRAIT - FOV) * this.portrait + (turbo ? FOV_TURBO_BONUS : 0);
     if (Math.abs(fov - this.camera.fov) > 0.01) {
       this.camera.fov += (fov - this.camera.fov) * smooth(4, dt);
       this.camera.updateProjectionMatrix();
@@ -194,8 +219,11 @@ export class GameRenderer {
     // geometrie e materiali dei modelli appartengono alla ModelLibrary (condivisa tra partite): non si toccano
     this.track.dispose();
     this.items.dispose();
-    this.deco.dispose();
+    this.env.dispose();
+    this.buildings.dispose();
     this.trail.dispose();
+    this.sparks.dispose();
+    this.streaks.dispose();
     this.kart.dispose();
     this.envMap?.dispose();
     this.scene.clear();

@@ -22,7 +22,7 @@
 - Env: `NEXT_PUBLIC_BACKEND` (`mock`|`remote`), `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_MOCK_COINS`. Reference them as literal `process.env.NEXT_PUBLIC_X` (Next inlines only literal accesses).
 - In mock mode Stars purchases are FREE: item granted immediately.
 - UI copy in Italian.
-- Commit after each task, message ending with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Commit after each task. Commit messages in Italian, format `Categoria: descrizione breve` (e.g. `Core: simulazione deterministica`, `Backend: mock localStorage`, `Render: ...`, `UI: ...`, `Asset: ...`, `Fix: ...`). NO `Co-Authored-By` or any AI attribution lines. Author stays the configured git user (BuldiDev).
 - Commands are run from the repo root `C:\Users\balda\Desktop\Codice\kart-gram` (shell: Git Bash or PowerShell).
 
 ## File Map
@@ -178,7 +178,7 @@ export const SPEED_CAP_BIOME = Math.ceil((CONFIG.speed.max - CONFIG.speed.base) 
 
 - [ ] **Step 7: Run `npm test` → PASS**
 
-- [ ] **Step 8: Commit** — `git add -A && git commit -m "feat(core): tooling vitest, rng e config"`
+- [ ] **Step 8: Commit** — `git add -A && git commit -m "Core: tooling vitest, rng e config"`
 
 ---
 
@@ -531,7 +531,7 @@ Note: the RNG call order in `generateNext` is fixed (all `rng()` calls happen un
 
 - [ ] **Step 5: Run `npm test` → PASS.** If the "holes and barriers" or spacing test fails, fix the spawner (not the test).
 
-- [ ] **Step 6: Commit** — `git commit -am "feat(core): generazione strada e oggetti" ` (use `git add -A` first)
+- [ ] **Step 6: Commit** — `git commit -am "Core: generazione strada e oggetti" ` (use `git add -A` first)
 
 ---
 
@@ -976,7 +976,7 @@ export function simulate(
 
 - [ ] **Step 5: Run `npx tsc --noEmit` → no errors**
 
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "feat(core): simulazione deterministica con replay"`
+- [ ] **Step 6: Commit** — `git add -A && git commit -m "Core: simulazione deterministica con replay"`
 
 ---
 
@@ -1221,7 +1221,7 @@ export * from "./types";
 
 - [ ] **Step 8: Run `npm test` and `npx tsc --noEmit` → PASS**
 
-- [ ] **Step 9: Commit** — `git add -A && git commit -m "feat(backend): contratto, catalogo, mock e remote"`
+- [ ] **Step 9: Commit** — `git add -A && git commit -m "Backend: contratto, catalogo, mock e remote"`
 
 ---
 
@@ -1364,7 +1364,7 @@ import Script from "next/script";
 
 - [ ] **Step 5: Run `npx tsc --noEmit`, `npm test`, `npm run build` → all pass**
 
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "feat: wrapper Telegram, input e flusso acquisti Stars"`
+- [ ] **Step 6: Commit** — `git add -A && git commit -m "Telegram: wrapper Telegram, input e flusso acquisti Stars"`
 
 ---
 
@@ -1404,7 +1404,7 @@ Expected: `ok`
 
 - [ ] **Step 4: README** — under "## Modelli 3D" add a table listing every model name, what it is, approximate size, and the notes: kart models have no wheels; meshes to recolor must use material named `paint`; wheel attach points `(±0.55, 0.22, ±0.6)`.
 
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "feat(assets): modelli segnaposto glb e generatore"`
+- [ ] **Step 5: Commit** — `git add -A && git commit -m "Asset: modelli segnaposto glb e generatore"`
 
 ---
 
@@ -1449,7 +1449,7 @@ Expected: `ok`
   - Turbo: FOV widens to 72 while active (lerp).
   - `dispose()` disposes renderer, geometries, materials.
 - [ ] **Step 4: Run `npx tsc --noEmit` and `npm run build` → pass.** (Visual verification happens in Task 9.)
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "feat(render): renderer three.js con strada, kart, oggetti e biomi"`
+- [ ] **Step 5: Commit** — `git add -A && git commit -m "Render: renderer three.js con strada, kart, oggetti e biomi"`
 
 ---
 
@@ -1485,7 +1485,7 @@ Expected: `ok`
   - `destroy()` cancels rAF, detaches input, disposes renderer.
 - [ ] **Step 2: Unit-check replay consistency** — create `src/game/Game.replay.test.ts` that does NOT use three: it reproduces the loop's recording rule with `createGame/step` and random presses (`mulberry32(1)` decides each tick), then asserts `simulate(seed, inputs, {maxTicks})` gives the same `finalScore`. (Guards against changing the recording rule.)
 - [ ] **Step 3: `npm test`, `npx tsc --noEmit` → pass**
-- [ ] **Step 4: Commit** — `git add -A && git commit -m "feat(game): controller del loop con registrazione input"`
+- [ ] **Step 4: Commit** — `git add -A && git commit -m "Gioco: controller del loop con registrazione input"`
 
 ---
 
@@ -1526,7 +1526,7 @@ Expected: `ok`
   7. Leaderboard shows the player.
   Fix any bug found (follow superpowers:systematic-debugging).
 - [ ] **Step 11: README** — update "## Avvio" with controls (tieni premuto / spazio / click) and add a short "## Come si gioca" section.
-- [ ] **Step 12: Commit** — `git add -A && git commit -m "feat(ui): schermate, HUD, garage, shop e integrazione pagina"`
+- [ ] **Step 12: Commit** — `git add -A && git commit -m "UI: schermate, HUD, garage, shop e integrazione pagina"`
 
 ---
 

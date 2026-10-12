@@ -179,6 +179,7 @@ interface Backend {
 ### Replay anti-cheat
 Il backend può rigiocare la partita con `simulate(seed, inputs, { upgrades, revived })` di `src/game/core/sim.ts`.
 Il risultato deve dare lo stesso `score`.
+`Math.sin`, `Math.cos`, `Math.atan2` e `Math.hypot` non sono identiche al bit tra motori JS diversi. Il backend deve rigiocare la partita su Node (V8, lo stesso motore di Chrome e Android WebView) e accettare una piccola tolleranza (per esempio |differenza| ≤ 1% dello score) invece di pretendere l'uguaglianza esatta, perché iOS (JavaScriptCore) può differire di minime quantità in virgola mobile.
 Se la partita ha `revived: true`, il revive viene applicato in automatico la prima volta che la partita finisce: in quel momento il tick non avanza, quindi la simulazione resta deterministica.
 
 ### Endpoint HTTP usati da `remote`

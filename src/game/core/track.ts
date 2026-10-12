@@ -13,7 +13,10 @@ export interface TrackSample {
 }
 
 export interface Track {
+  /** Stream RNG della sola geometria. */
   rng: Rng;
+  /** Stream RNG separato per gli oggetti: spawnItems on/off non cambia la strada. */
+  itemRng: Rng;
   samples: TrackSample[];
   items: Item[];
   nextItemId: number;
@@ -25,6 +28,7 @@ const WIDTH_BLEND = 5;
 export function createTrack(seed: number, opts: { spawnItems?: boolean } = {}): Track {
   const track: Track = {
     rng: mulberry32(seed),
+    itemRng: mulberry32((seed ^ 0x9e3779b9) >>> 0),
     samples: [{ s: 0, x: 0, y: 0, angle: Math.PI / 2, width: CONFIG.road.width, elevation: 0, curvature: 0 }],
     items: [],
     nextItemId: 1,

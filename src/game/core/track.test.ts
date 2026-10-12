@@ -82,4 +82,26 @@ describe("track", () => {
     const r = project(t, pos.x, pos.y, Math.floor(it.s) - 5);
     expect(r.lateral).toBeCloseTo(it.lateral, 1);
   });
+
+  it("geometry is identical with and without items", () => {
+    const a = createTrack(21), b = createTrack(21, { spawnItems: false });
+    extendTrack(a, 5000); extendTrack(b, 5000);
+    expect(a.samples).toEqual(b.samples);
+  });
+
+  it("rivals stay inside the road width", () => {
+    const t = createTrack(14); extendTrack(t, 15000);
+    for (const it of t.items.filter((i) => i.kind === "rival")) {
+      const pos = itemPosition(t, it);
+      const r = project(t, pos.x, pos.y, Math.floor(it.s) - 5);
+      expect(Math.abs(r.lateral)).toBeLessThanOrEqual(sampleAt(t, it.s).width / 2 - it.radius + 1e-6);
+    }
+    const narrow = createTrack(1, { spawnItems: false }); extendTrack(narrow, 100);
+    const s = narrow.samples[70];
+    s.width = 4.5;
+    const rival = { id: 1, kind: "rival" as const, s: 70, lateral: 3, radius: 0.7, length: 0, speed: 9, consumed: false, passed: false, minDist: Infinity };
+    const p = itemPosition(narrow, rival);
+    const r = project(narrow, p.x, p.y, 65);
+    expect(r.lateral).toBeCloseTo(4.5 / 2 - 0.7, 1);
+  });
 });

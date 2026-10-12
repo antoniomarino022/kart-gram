@@ -51,7 +51,7 @@ function pickObstacle(rng: Rng, difficulty: number, isCurve: boolean, width: num
 const side = (rng: Rng) => (rng() < 0.5 ? -1 : 1);
 
 export function spawnItems(track: Track, startS: number, endS: number, difficulty: number) {
-  const rng = track.rng;
+  const rng = track.itemRng;
   const isCurve = sampleAt(track, (startS + endS) / 2).curvature !== 0;
   const spacing = Math.max(CONFIG.spawn.minSpacing, CONFIG.spawn.baseSpacing - difficulty * CONFIG.spawn.spacingPerBiome);
 
@@ -91,5 +91,11 @@ export function spawnItems(track: Track, startS: number, endS: number, difficult
 
 export function itemPosition(track: Track, it: Item) {
   const p = sampleAt(track, it.s);
-  return { x: p.x - Math.sin(p.angle) * it.lateral, y: p.y + Math.cos(p.angle) * it.lateral, elevation: p.elevation, angle: p.angle };
+  let lateral = it.lateral;
+  // il rival tiene la laterale dello spawn: su un tratto stretto resta dentro la strada
+  if (it.kind === "rival") {
+    const lim = Math.max(0, p.width / 2 - it.radius);
+    lateral = Math.max(-lim, Math.min(lim, lateral));
+  }
+  return { x: p.x - Math.sin(p.angle) * lateral, y: p.y + Math.cos(p.angle) * lateral, elevation: p.elevation, angle: p.angle };
 }

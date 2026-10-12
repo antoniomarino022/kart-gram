@@ -90,27 +90,27 @@ Per rigenerare i segnaposto: `npm run models`.
 
 | File | Cosa è | Dimensione circa |
 |---|---|---|
-| `kart_classic` | Kart base, corpo basso a scatola con sedile e volante | 1.0 × 0.35 × 1.6 m |
-| `kart_bolt` | Kart a cuneo con alettone posteriore | 1.1 × 0.8 × 1.7 m |
-| `kart_brick` | Kart alto e squadrato | 1.05 × 0.9 × 1.5 m |
-| `kart_rocket` | Kart lungo con propulsori dietro | 0.8 × 0.6 × 2 m |
-| `wheel_basic` | Ruota standard | raggio 0.22, larghezza 0.18 m |
-| `wheel_sport` | Ruota sottile con cerchio colorato | raggio 0.22, larghezza 0.16 m |
-| `wheel_offroad` | Ruota larga e tassellata | raggio 0.26, larghezza 0.24 m |
-| `wheel_retro` | Ruota con fascia bianca | raggio 0.22, larghezza 0.18 m |
-| `rival_kart` | Kart avversario grigio, con le ruote incluse (niente `paint`) | 1.1 × 0.7 × 1.7 m |
+| `kart_classic` | Kart base, corpo basso a scatola con sedile e volante | 1.0 × 0.7 × 1.6 m (larg. × alt. × lung.) |
+| `kart_bolt` | Kart a cuneo con alettone posteriore | 1.1 × 0.65 × 2.1 m |
+| `kart_brick` | Kart alto e squadrato | 1.05 × 1.0 × 1.55 m |
+| `kart_rocket` | Kart lungo con propulsori dietro | 0.85 × 0.65 × 2.5 m |
+| `wheel_basic` | Ruota standard | raggio 0.22, larghezza 0.20 m |
+| `wheel_sport` | Ruota sottile con cerchio colorato | raggio 0.22, larghezza 0.18 m |
+| `wheel_offroad` | Ruota larga e tassellata | raggio esterno 0.25, larghezza 0.28 m (agganciata a y = 0.22 affonda al massimo 0.03: accettabile) |
+| `wheel_retro` | Ruota con fascia bianca | raggio 0.22, larghezza 0.23 m |
+| `rival_kart` | Kart avversario grigio, con le ruote incluse (niente `paint`) | 1.3 × 0.85 × 1.65 m |
 | `obstacle_cone` | Cono arancione con striscia bianca | raggio 0.35, altezza 0.7 m |
 | `obstacle_barrier` | Barriera a strisce rosse e bianche | 3.0 × 0.9 × 0.4 m |
 | `coin` | Moneta d'oro in piedi, rivolta verso Z | raggio 0.35, spessore 0.08 m |
-| `powerup_turbo` | Doppio chevron arancione | 0.8 m |
+| `powerup_turbo` | Doppio chevron arancione | 0.85 × 0.8 m |
 | `powerup_shield` | Sfera schiacciata azzurra | 0.8 m |
 | `powerup_magnet` | Calamita a U rossa | 0.8 m |
 | `powerup_wide` | Piastra larga verde con frecce | 0.9 m |
 | `powerup_slowmo` | Clessidra viola | 0.8 m |
 | `powerup_x2` | Due cubi gialli | 0.8 m |
-| `deco_city_1..3` | Torri blu | 9–15 m |
-| `deco_desert_1..3` | Piramide, arco, cactus | 7–9 m |
-| `deco_ice_1..3` | Cristallo, cubi di neve, gruppo di cristalli | 5–7 m |
-| `deco_neon_1..3` | Anelli, torre e cubo al neon magenta / ciano | 8–10 m |
+| `deco_city_1..3` | Torri blu | alte 14–19 m |
+| `deco_desert_1..3` | Piramide, arco, cactus | alte 6–8.5 m (la piramide è larga 14 m) |
+| `deco_ice_1..3` | Cristallo, cubi di neve, gruppo di cristalli | alte 4.7–9.2 m |
+| `deco_neon_1..3` | Anelli, torre e cubo al neon magenta / ciano | alte 4–9 m, larghe fino a 9 m |
 
 Olio, ghiaccio e buche non sono modelli: il gioco li disegna come decal piatti.

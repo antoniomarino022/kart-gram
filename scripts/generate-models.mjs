@@ -59,9 +59,9 @@ function kartBolt() {
   const g = new THREE.Group();
   const spoiler = mat("spoiler", "#212121");
   add(g, box(1.0, 0.28, 1.0), paint("#fdd835"), [0, 0.29, 0.2]);
-  // muso a cuneo: piramide a 4 lati schiacciata
-  const nose = add(g, cyl(0.28, 0.7, 0.8, 4), paint("#fdd835"), [0, 0.29, -0.7], [-HALF, Math.PI / 4, 0]);
-  nose.scale.set(1, 1, 0.4);
+  // muso a cuneo a gradini, basso e dentro la carreggiata (x <= 0.45 sopra le ruote)
+  add(g, box(0.9, 0.28, 0.5), paint("#fdd835"), [0, 0.29, -0.55]);
+  add(g, box(0.6, 0.18, 0.4), paint("#fdd835"), [0, 0.24, -0.95]);
   add(g, box(1.1, 0.06, 0.3), spoiler, [0, 0.72, 0.8]);
   add(g, box(0.06, 0.25, 0.1), spoiler, [-0.35, 0.58, 0.8]);
   add(g, box(0.06, 0.25, 0.1), spoiler, [0.35, 0.58, 0.8]);
@@ -82,8 +82,9 @@ function kartRocket() {
   const g = new THREE.Group();
   add(g, box(0.8, 0.3, 1.7), paint("#8e24aa"), [0, 0.3, 0]);
   // punta conica verso -Z
-  const tip = add(g, cyl(0.02, 0.4, 0.5, 8), paint("#8e24aa"), [0, 0.3, -1.1], [-HALF, 0, 0]);
-  tip.scale.set(1, 1, 0.75);
+  // raggio 0.15 = altezza del corpo (y 0.15..0.45), allargata in x
+  const tip = add(g, cyl(0.02, 0.15, 0.5, 8), paint("#8e24aa"), [0, 0.3, -1.1], [-HALF, 0, 0]);
+  tip.scale.set(2, 1, 1);
   for (const x of [-0.25, 0.25]) {
     add(g, cyl(0.14, 0.17, 0.4, 12), grey, [x, 0.38, 0.9], [HALF, 0, 0]);
     add(g, cyl(0.1, 0.1, 0.05, 12), mat("flame", "#ff9800", "#ff6d00"), [x, 0.38, 1.12], [HALF, 0, 0]);
@@ -96,7 +97,7 @@ function kartRocket() {
 function wheel({ r = 0.22, w = 0.18, rim, whitewall, tread } = {}) {
   const g = new THREE.Group();
   const tire = mat("tire", "#1c1c22");
-  add(g, cyl(r, r, w, 20), tire, [0, 0, 0], [0, 0, HALF]);
+  add(g, cyl(tread ? r - 0.02 : r, tread ? r - 0.02 : r, w, 20), tire, [0, 0, 0], [0, 0, HALF]);
   if (rim) add(g, cyl(r * 0.6, r * 0.6, w + 0.02, 16), mat("rim", rim), [0, 0, 0], [0, 0, HALF]);
   else add(g, cyl(r * 0.45, r * 0.45, w + 0.02, 12), grey, [0, 0, 0], [0, 0, HALF]);
   if (whitewall) {
@@ -107,7 +108,7 @@ function wheel({ r = 0.22, w = 0.18, rim, whitewall, tread } = {}) {
   if (tread) {
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      add(g, box(w + 0.04, 0.06, 0.07), tire, [0, Math.sin(a) * r, Math.cos(a) * r], [a, 0, 0]);
+      add(g, box(w + 0.04, 0.06, 0.07), tire, [0, Math.sin(a) * (r - 0.05), Math.cos(a) * (r - 0.05)], [a, 0, 0]);
     }
   }
   return g;
@@ -237,7 +238,7 @@ function ice(i) {
   const c = mat("crystal", "#81d4fa", "#4fc3f7");
   const w = mat("snow", "#f5fbff");
   if (i === 0) {
-    add(g, new THREE.IcosahedronGeometry(3, 0), c, [0, 3, 0]).scale.set(0.8, 1.8, 0.8);
+    add(g, new THREE.IcosahedronGeometry(3, 0), c, [0, 4.6, 0]).scale.set(0.8, 1.8, 0.8);
   } else if (i === 1) {
     add(g, box(3, 3, 3), w, [0, 1.5, 0]);
     add(g, box(2, 2, 2), w, [0.5, 4, 0.3], [0, 0.5, 0]);
@@ -245,7 +246,7 @@ function ice(i) {
   } else {
     add(g, new THREE.IcosahedronGeometry(1.5, 0), c, [-1.5, 2.5, 0]).scale.set(0.7, 1.7, 0.7);
     add(g, new THREE.IcosahedronGeometry(1.2, 0), c, [1.2, 1.8, 0.5]).scale.set(0.7, 1.5, 0.7);
-    add(g, new THREE.IcosahedronGeometry(1, 0), w, [0, 0.8, -1]);
+    add(g, new THREE.IcosahedronGeometry(1, 0), w, [0, 1.05, -1]);
   }
   return g;
 }

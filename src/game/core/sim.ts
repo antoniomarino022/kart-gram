@@ -1,6 +1,9 @@
 import { CONFIG, DT } from "./config";
-import { isSolid, itemPosition, type PowerupKind } from "./items";
-import { createTrack, curveSignAt, extendTrack, project, sampleAt, type Track } from "./track";
+import { isSolid, itemPosition, type Item, type PowerupKind } from "./items";
+import { createTrack, extendTrack, project, sampleAt, type Track } from "./track";
+
+/** Sterzata: +1 = sinistra (l'angolo cresce), -1 = destra, 0 = dritto. */
+export type Steer = -1 | 0 | 1;
 
 export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2";
 export type UpgradeLevels = Record<UpgradeId, number>;
@@ -16,7 +19,8 @@ export type GameEvent =
   | { type: "fall" }
   | { type: "shieldUsed" }
   | { type: "gameover" }
-  | { type: "biome"; index: number };
+  | { type: "biome"; index: number }
+  | { type: "boost" };
 
 export interface Kart {
   x: number; y: number; angle: number; speed: number;
@@ -39,16 +43,20 @@ export interface GameState {
   driftTime: number;
   slowTimer: number;
   invulnTimer: number;
+  /** Secondi di boost rimasti (pedane). */
+  boostTimer: number;
+  /** Ghiaccio: secondi di scivolata rimasti dopo il rilascio. */
+  slideTimer: number;
   powerups: Record<PowerupKind, number>;
   upgrades: UpgradeLevels;
   revived: boolean;
   biome: number;
-  lastCurveSign: number;
+  /** Ultima sterzata diversa da 0 (per l'olio, la scivolata sul ghiaccio e il renderer). */
+  lastSteer: -1 | 1;
   events: GameEvent[];
 }
 
 const TIMED: Exclude<PowerupKind, "shield">[] = ["turbo", "magnet", "wide", "slowmo", "x2"];
-const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, opts: { spawnItems?: boolean } = {}): GameState {
   const track = createTrack(seed, opts);
@@ -66,11 +74,13 @@ export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, 
     driftTime: 0,
     slowTimer: 0,
     invulnTimer: 0,
+    boostTimer: 0,
+    slideTimer: 0,
     powerups: { turbo: 0, shield: 0, magnet: 0, wide: 0, slowmo: 0, x2: 0 },
     upgrades: { ...upgrades },
     revived: false,
     biome: 0,
-    lastCurveSign: 1,
+    lastSteer: 1,
     events: [],
   };
 }
@@ -87,6 +97,7 @@ function snapToCenter(st: GameState) {
   k.x = p.x; k.y = p.y; k.angle = p.angle; k.lateral = 0; k.elevation = p.elevation; k.fallDepth = 0;
   k.drifting = false;
   st.driftTime = 0;
+  st.slideTimer = 0;
 }
 
 function startFall(st: GameState) {
@@ -111,12 +122,26 @@ function activatePowerup(st: GameState, kind: PowerupKind) {
   st.events.push({ type: "powerup", kind });
 }
 
+/** Il kart è sulla pedana: dentro il tratto e (se la pedana è mezza strada) dalla parte giusta. */
+function onBoostPad(st: GameState, it: Item) {
+  const k = st.kart;
+  if (k.s < it.s || k.s > it.s + it.length) return false;
+  if (it.lateral === 0) return true;
+  const half = sampleAt(st.track, k.s).width / 2;
+  return Math.sign(k.lateral) === Math.sign(it.lateral) && Math.abs(k.lateral) >= CONFIG.boost.minInside && Math.abs(k.lateral) <= half;
+}
+
 function surface(st: GameState) {
   const k = st.kart;
   let ice = false, oil = false;
   for (const it of st.track.items) {
     if (it.consumed) continue;
-    if (it.kind === "ice" && k.s >= it.s && k.s <= it.s + it.length) ice = true;
+    if (it.kind === "boost") {
+      if (onBoostPad(st, it)) {
+        st.boostTimer = CONFIG.boost.duration;
+        if (!it.entered) { it.entered = true; st.events.push({ type: "boost" }); }
+      }
+    } else if (it.kind === "ice" && k.s >= it.s && k.s <= it.s + it.length) ice = true;
     else if (it.kind === "oil" && Math.abs(it.s - k.s) < 3) {
       const p = itemPosition(st.track, it);
       if (Math.hypot(p.x - k.x, p.y - k.y) < it.radius) oil = true;
@@ -142,7 +167,7 @@ function handleItems(st: GameState, dt: number) {
       continue;
     }
     const reach = it.kind === "coin" && st.powerups.magnet > 0 ? CONFIG.magnetRadius + 1 : 3;
-    if (ds > reach || it.kind === "ice" || it.kind === "oil") continue;
+    if (ds > reach || it.kind === "ice" || it.kind === "oil" || it.kind === "boost") continue;
     const p = itemPosition(st.track, it);
     const dist = Math.hypot(p.x - k.x, p.y - k.y);
 
@@ -169,7 +194,7 @@ function handleItems(st: GameState, dt: number) {
   st.track.items = st.track.items.filter((it) => it.s > k.s - 40);
 }
 
-export function step(st: GameState, pressed: boolean): GameState {
+export function step(st: GameState, steer: Steer): GameState {
   st.events = [];
   if (st.phase === "over") return st;
   st.tick++;
@@ -179,6 +204,7 @@ export function step(st: GameState, pressed: boolean): GameState {
   for (const p of TIMED) st.powerups[p] = Math.max(0, st.powerups[p] - DT);
   st.slowTimer = Math.max(0, st.slowTimer - DT);
   st.invulnTimer = Math.max(0, st.invulnTimer - DT);
+  st.boostTimer = Math.max(0, st.boostTimer - DT);
 
   if (st.phase === "falling") {
     k.x += Math.cos(k.angle) * k.speed * dt;
@@ -194,21 +220,25 @@ export function step(st: GameState, pressed: boolean): GameState {
   const biome = Math.floor(k.s / CONFIG.biomeLength);
   if (biome !== st.biome) { st.biome = biome; st.events.push({ type: "biome", index: biome }); }
 
+  const { ice, oil } = surface(st);
+
   let speed = Math.min(CONFIG.speed.max, CONFIG.speed.base + CONFIG.speed.perBiome * biome);
   if (st.powerups.turbo > 0) speed *= CONFIG.turboSpeedFactor;
+  if (st.boostTimer > 0) speed *= CONFIG.boost.speedFactor;
   if (st.slowTimer > 0) speed *= CONFIG.hitSlowdown.factor;
   k.speed = speed;
 
-  const { ice, oil } = surface(st);
-  const drifting = pressed || oil;
-  const here = sampleAt(st.track, k.s);
-  const sign = (here.curvature !== 0 ? Math.sign(here.curvature) : curveSignAt(st.track, k.s, CONFIG.curveLookAhead)) || st.lastCurveSign;
-  st.lastCurveSign = sign;
-  if (drifting) k.angle += sign * (speed / CONFIG.turnRadius) * (ice ? CONFIG.iceGrip : 1) * dt;
-  else if (!ice) {
-    const d = angleDiff(here.angle, k.angle);
-    const m = CONFIG.relaxRate * dt;
-    k.angle += Math.max(-m, Math.min(m, d));
+  // la strada non decide nulla: si gira solo con la sterzata (o sull'olio), altrimenti si va dritti
+  if (steer !== 0) st.lastSteer = steer;
+  const drifting = steer !== 0 || oil;
+  const turnRate = (speed / CONFIG.turnRadius) * (ice ? CONFIG.iceGrip : 1);
+  if (drifting) {
+    k.angle += (steer || st.lastSteer) * turnRate * dt;
+    st.slideTimer = CONFIG.iceSlide;
+  } else {
+    // sul ghiaccio il kart continua a scivolare per un attimo nella direzione dell'ultima sterzata
+    if (ice && st.slideTimer > 0) k.angle += st.lastSteer * turnRate * (st.slideTimer / CONFIG.iceSlide) * dt;
+    st.slideTimer = Math.max(0, st.slideTimer - DT);
   }
   k.drifting = drifting;
 
@@ -248,7 +278,7 @@ export function step(st: GameState, pressed: boolean): GameState {
 export function revive(st: GameState): boolean {
   if (st.phase !== "over" || st.revived) return false;
   snapToCenter(st);
-  for (const it of st.track.items) if (it.s >= st.kart.s && it.s <= st.kart.s + 25 && it.kind !== "coin" && it.kind !== "powerup") it.consumed = true;
+  for (const it of st.track.items) if (it.s >= st.kart.s && it.s <= st.kart.s + 25 && it.kind !== "coin" && it.kind !== "powerup" && it.kind !== "boost") it.consumed = true;
   st.phase = "running";
   st.revived = true;
   st.invulnTimer = CONFIG.invulnAfterRevive;
@@ -257,15 +287,15 @@ export function revive(st: GameState): boolean {
 
 export function simulate(
   seed: number,
-  inputs: [number, boolean][],
+  inputs: [number, Steer][],
   opts: { upgrades?: UpgradeLevels; revived?: boolean; maxTicks?: number } = {},
 ): GameState {
   const st = createGame(seed, opts.upgrades);
   const max = opts.maxTicks ?? CONFIG.maxTicks;
-  let pressed = false, i = 0;
+  let steer: Steer = 0, i = 0;
   while (st.tick < max) {
-    while (i < inputs.length && inputs[i][0] <= st.tick) { pressed = inputs[i][1]; i++; }
-    step(st, pressed);
+    while (i < inputs.length && inputs[i][0] <= st.tick) { steer = inputs[i][1]; i++; }
+    step(st, steer);
     if (st.phase === "over") {
       if (opts.revived && !st.revived) revive(st);
       else break;

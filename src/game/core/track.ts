@@ -125,11 +125,3 @@ export function project(track: Track, x: number, y: number, hint: number) {
   const dx = x - p.x, dy = y - p.y;
   return { index: best, s: p.s + dx * c + dy * sn, lateral: -dx * sn + dy * c, elevation: p.elevation };
 }
-
-export function curveSignAt(track: Track, s: number, ahead: number): -1 | 0 | 1 {
-  const S = track.samples;
-  const from = Math.max(0, Math.floor(s / STEP) + 1);
-  const to = Math.min(S.length - 1, Math.floor((s + ahead) / STEP));
-  for (let i = from; i <= to; i++) if (S[i].curvature !== 0) return Math.sign(S[i].curvature) as -1 | 1;
-  return 0;
-}

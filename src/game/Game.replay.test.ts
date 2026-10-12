@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mulberry32 } from "./core/rng";
-import { createGame, finalScore, revive, simulate, step } from "./core/sim";
+import { createGame, finalScore, revive, simulate, step, type Steer } from "./core/sim";
 import { InputRecorder } from "./inputRecorder";
 
 // Riproduce il loop del Game senza three: stessa regola di registrazione (InputRecorder) prima di ogni step.
@@ -8,11 +8,12 @@ function play(seed: number, maxTicks: number, withRevive: boolean) {
   const st = createGame(seed);
   const rec = new InputRecorder();
   const rng = mulberry32(1);
-  let pressed = false;
+  let steer: Steer = 0;
   while (st.tick < maxTicks) {
-    if (rng() < 0.06) pressed = !pressed; // mulberry32(1) decide a ogni tick se cambiare input
-    rec.record(st.tick, pressed);
-    step(st, pressed);
+    // mulberry32(1) decide a ogni tick se cambiare input, e verso quale sterzata
+    if (rng() < 0.06) steer = ([-1, 0, 1] as const)[Math.floor(rng() * 3)];
+    rec.record(st.tick, steer);
+    step(st, steer);
     if (st.phase === "over") {
       if (withRevive && !st.revived) revive(st);
       else break;
@@ -38,10 +39,11 @@ describe("Game replay", () => {
 
   it("registra solo i cambi, con il tick prima dello step", () => {
     const rec = new InputRecorder();
-    rec.record(0, false);
-    rec.record(1, true);
-    rec.record(2, true);
-    rec.record(5, false);
-    expect(rec.inputs).toEqual([[1, true], [5, false]]);
+    rec.record(0, 0);
+    rec.record(1, 1);
+    rec.record(2, 1);
+    rec.record(3, -1);
+    rec.record(5, 0);
+    expect(rec.inputs).toEqual([[1, 1], [3, -1], [5, 0]]);
   });
 });

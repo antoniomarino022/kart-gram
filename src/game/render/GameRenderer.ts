@@ -138,7 +138,7 @@ export class GameRenderer {
     root.rotation.set(pitch, yaw, 0);
 
     // drift visivo: yaw extra verso l'interno della curva e leggero rollio
-    if (k.drifting) this.driftSign = state.lastCurveSign;
+    if (k.drifting) this.driftSign = state.lastSteer;
     this.drift = Math.max(0, Math.min(1, this.drift + (k.drifting ? dt : -dt) / DRIFT_EASE_TIME));
     const d = smoothstep(this.drift);
     this.kart.pivot.rotation.set(0, DRIFT_YAW * this.driftSign * d, -DRIFT_ROLL * this.driftSign * d);
@@ -163,10 +163,12 @@ export class GameRenderer {
     this.renderer.getDrawingBufferSize(this.size);
     const pxPerMeter = this.size.y / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
     const drifting = running && k.drifting;
-    const left = this.kart.rearWheel(-1, this.v1), right = this.kart.rearWheel(1, this.v2);
-    this.trail.update(drifting, left, right, dt, this.time, pxPerMeter, this.colors.horizon);
+    // girando a sinistra (+1) il retro scivola a destra: fumo e scintille escono soprattutto dalla ruota esterna
+    const outerSide = this.driftSign >= 0 ? 1 : -1;
+    const outer = this.kart.rearWheel(outerSide, this.v1), inner = this.kart.rearWheel(-outerSide as -1 | 1, this.v2);
+    this.trail.update(drifting, outer, inner, dt, this.time, pxPerMeter, this.colors.horizon);
     this.v3.set(-Math.cos(angle), 0, Math.sin(angle)); // retro del kart in coordinate three
-    this.sparks.update(drifting, left, right, this.v3, dt, pxPerMeter);
+    this.sparks.update(drifting, outer, outerSide, this.v3, dt, pxPerMeter);
     this.streaks.update(
       this.kart.tailLight(-1, this.v3), this.kart.tailLight(1, this.v4), this.time, dt,
       drifting || turbo, k.fallDepth === 0,

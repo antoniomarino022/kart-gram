@@ -1,6 +1,6 @@
 import { DT } from "./core/config";
 import type { PowerupKind } from "./core/items";
-import { createGame, finalScore, revive, step, type GameEvent, type GameState, type UpgradeLevels } from "./core/sim";
+import { createGame, finalScore, revive, step, type GameEvent, type GameState, type Steer, type UpgradeLevels } from "./core/sim";
 import { attachInput } from "./input/pointer";
 import { InputRecorder } from "./inputRecorder";
 import { GameRenderer, type KartPose, type Loadout } from "./render/GameRenderer";
@@ -16,6 +16,8 @@ export interface HudSnapshot {
   powerups: Record<PowerupKind, number>;
   drifting: boolean;
   biome: number;
+  /** Secondi di boost (pedane) rimasti. */
+  boostTimer: number;
 }
 
 const HAPTICS: Partial<Record<GameEvent["type"], Parameters<typeof haptic>[0]>> = {
@@ -24,6 +26,7 @@ const HAPTICS: Partial<Record<GameEvent["type"], Parameters<typeof haptic>[0]>> 
   powerup: "light",
   shieldUsed: "light",
   gameover: "error",
+  boost: "light",
 };
 
 const copyPose = (k: KartPose, out: KartPose) => {
@@ -46,7 +49,7 @@ export class Game {
   private canvas: HTMLCanvasElement;
   private prevPose: KartPose;
 
-  private pressed = false;
+  private steer: Steer = 0;
   private _paused = false;
   private activeMs = 0;
   private acc = 0;
@@ -66,7 +69,7 @@ export class Game {
     this.renderer = new GameRenderer(opts.canvas, opts.models, opts.loadout);
   }
 
-  /** input changes as [tick, pressed], ready for RunResult.inputs */
+  /** input changes as [tick, steer], ready for RunResult.inputs */
   get inputs() { return this.recorder.inputs; }
   /** active (unpaused) play time */
   get durationMs() { return Math.round(this.activeMs); }
@@ -75,7 +78,7 @@ export class Game {
   start() {
     if (this.started || this.destroyed) return;
     this.started = true;
-    this.cleanups.push(attachInput(this.canvas, (p) => { this.pressed = p; }));
+    this.cleanups.push(attachInput(this.canvas, (s) => { this.steer = s; }));
     this.cleanups.push(onVisibilityChange((visible) => { if (!visible) this.pause(); }));
     if (typeof ResizeObserver !== "undefined") {
       const ro = new ResizeObserver(() => { this.renderer.resize(); this.needsFrame = true; });
@@ -107,6 +110,7 @@ export class Game {
       powerups: { ...s.powerups },
       drifting: s.kart.drifting,
       biome: s.biome,
+      boostTimer: s.boostTimer,
     };
   }
 
@@ -121,10 +125,10 @@ export class Game {
       this.activeMs += frameDt * 1000;
       this.acc += frameDt;
       while (this.acc >= DT) {
-        this.recorder.record(st.tick, this.pressed);
+        this.recorder.record(st.tick, this.steer);
         copyPose(st.kart, this.prevPose);
         const wasDrifting = st.kart.drifting;
-        step(st, this.pressed);
+        step(st, this.steer);
         this.acc -= DT;
         if (!wasDrifting && st.kart.drifting) haptic("light");
         for (const e of st.events) {

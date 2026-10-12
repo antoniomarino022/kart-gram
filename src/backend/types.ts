@@ -36,7 +36,8 @@ export interface RunResult {
   coins: number;
   durationMs: number;
   revived: boolean;
-  inputs: [tick: number, pressed: boolean][];
+  /** cambi di sterzata: +1 sinistra, -1 destra, 0 dritto */
+  inputs: [tick: number, steer: -1 | 0 | 1][];
 }
 
 export interface FinishResult { newBest: boolean; coinsEarned: number; profile: Profile }

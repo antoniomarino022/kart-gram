@@ -14,10 +14,12 @@ Una partita dura in genere 45–90 secondi e il restart è istantaneo.
 ## 2. Gameplay
 
 ### Controllo
-- Si usa un solo input. Il kart avanza sempre da solo.
-- **Premuto:** il kart derapa e gira. La direzione della curva la decide la strada.
-- **Rilasciato:** il kart raddrizza.
-- Su touch: dito sullo schermo. Su PC: tasto sinistro del mouse oppure barra spaziatrice, per provarlo da PC.
+- Il kart avanza sempre da solo. La direzione la sceglie il giocatore, la strada non sterza mai il kart.
+- **Metà sinistra dello schermo premuta:** il kart derapa e curva a sinistra.
+- **Metà destra dello schermo premuta:** il kart derapa e curva a destra.
+- **Rilasciato:** il kart va dritto, con la direzione che ha in quel momento.
+- Con più dita conta l'ultima premuta; se la rilasci torna a valere quella ancora premuta.
+- Su PC: click del mouse sulle due metà dello schermo, oppure ←/→ o A/D.
 
 ### Strada
 - È un nastro 3D generato all'infinito, a segmenti: rettilinei, curve a sinistra e a destra di angolo variabile, salite e discese, tratti stretti.
@@ -37,10 +39,15 @@ Una partita dura in genere 45–90 secondi e il restart è istantaneo.
 |---|---|
 | Coni | Rallentano e azzerano la combo |
 | Olio | Allunga il drift in corso |
-| Ghiaccio | Meno aderenza |
+| Ghiaccio | Meno aderenza: si gira più piano e, rilasciando, il kart scivola ancora per un attimo nella stessa direzione |
 | Barriere | Restringono la strada |
 | Buchi | Se ci passi sopra cadi |
 | Kart rivali lenti | Ostacolo mobile da sorpassare. Se lo urti rallenti e azzeri la combo |
+
+### Pedane boost
+- Pedane boost: sezioni di strada colorate con frecce animate; passandoci sopra il kart accelera per 1,5 s.
+- Di solito coprono metà strada (sinistra o destra), a volte tutta la larghezza. Bisogna sterzare dalla parte giusta per prenderle.
+- Il colore è una tinta chiara della palette del bioma.
 
 ### Power-up
 I power-up si raccolgono passandoci sopra e si attivano da soli.
@@ -89,7 +96,7 @@ Missioni, season pass, Daily Run e sfide tra amici. Il seed le rende possibili p
   - Camera alle spalle del kart.
   - Biomi e oggetti decorativi fluttuanti.
   - Il pixel ratio è limitato a 2.
-- **`src/game/input`:** traduce touch, mouse e tastiera in un solo booleano `pressed`. Registra la lista `[tick, pressed]` delle volte in cui l'input cambia.
+- **`src/game/input`:** traduce touch, mouse e tastiera in una sterzata `steer`: `+1` sinistra, `-1` destra, `0` dritto. Registra la lista `[tick, steer]` delle volte in cui l'input cambia.
 - **Loop:** gira con `requestAnimationFrame` usando un accumulatore, fuori da React.
   - Il delta tra un frame e l'altro è troncato a 250 ms, così il ritorno dal background non fa saltare la simulazione.
   - Quando l'app va in background la partita va in pausa.
@@ -157,7 +164,7 @@ interface RunResult {
   coins: number;
   durationMs: number;
   revived: boolean;
-  inputs: [tick: number, pressed: boolean][];
+  inputs: [tick: number, steer: -1 | 0 | 1][];  // +1 sinistra, -1 destra, 0 dritto
 }
 
 interface LeaderboardEntry { rank: number; userId: string; name: string; score: number; }
@@ -178,6 +185,7 @@ interface Backend {
 
 ### Replay anti-cheat
 Il backend può rigiocare la partita con `simulate(seed, inputs, { upgrades, revived })` di `src/game/core/sim.ts`.
+`inputs` contiene solo i cambi di sterzata: prima di ogni tick si applicano tutti gli input con `tick <= tick corrente`, e la sterzata resta quella fino al cambio successivo.
 Il risultato deve dare lo stesso `score`.
 `Math.sin`, `Math.cos`, `Math.atan2` e `Math.hypot` non sono identiche al bit tra motori JS diversi. Il backend deve rigiocare la partita su Node (V8, lo stesso motore di Chrome e Android WebView) e accettare una piccola tolleranza (per esempio |differenza| ≤ 1% dello score) invece di pretendere l'uguaglianza esatta, perché iOS (JavaScriptCore) può differire di minime quantità in virgola mobile.
 Se la partita ha `revived: true`, il revive viene applicato in automatico la prima volta che la partita finisce: in quel momento il tick non avanza, quindi la simulazione resta deterministica.

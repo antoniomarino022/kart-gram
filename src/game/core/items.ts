@@ -8,13 +8,15 @@ export const POWERUP_KINDS: readonly PowerupKind[] = ["turbo", "shield", "magnet
 
 export interface Item {
   id: number;
-  kind: ObstacleKind | "coin" | "powerup";
+  kind: ObstacleKind | "coin" | "powerup" | "boost";
   powerup?: PowerupKind;
   /** Progresso lungo la strada (m). Per i rival cambia nel tempo. */
   s: number;
+  /** Pedana boost: 0 = tutta la strada, altrimenti il segno indica la metà (sinistra > 0). */
   lateral: number;
+  /** Pedana boost: mezza larghezza allo spawn (a runtime si usa la larghezza corrente della strada). */
   radius: number;
-  /** Lunghezza della chiazza (solo ice). */
+  /** Lunghezza della chiazza (ice) o della pedana (boost). */
   length: number;
   /** Velocità (m/s), solo rival. */
   speed: number;
@@ -24,7 +26,11 @@ export interface Item {
   passed: boolean;
   /** Distanza minima registrata dal kart (per il near-miss). */
   minDist: number;
+  /** Pedana boost già presa (l'evento "boost" parte una volta sola). */
+  entered?: boolean;
 }
+
+const isObstacle = (it: Item) => it.kind !== "coin" && it.kind !== "powerup" && it.kind !== "boost";
 
 export const isSolid = (it: Item) => it.kind === "cone" || it.kind === "barrier" || it.kind === "rival";
 
@@ -71,6 +77,9 @@ export function spawnItems(track: Track, startS: number, endS: number, difficult
     s += Math.max(6, range(rng, spacing * 0.7, spacing * 1.3));
   }
 
+  // pedana boost sui rettilinei (anche subito dopo una curva), lontana dagli ostacoli
+  if (!isCurve && rng() < CONFIG.spawn.boostChance) spawnBoost(track, startS, endS);
+
   // monete in fila sui rettilinei
   if (!isCurve && rng() < CONFIG.spawn.coinChance) {
     const w = sampleAt(track, startS).width;
@@ -87,6 +96,18 @@ export function spawnItems(track: Track, startS: number, endS: number, difficult
     const w = sampleAt(track, ps).width;
     add(track, { kind: "powerup", powerup: pick(rng, POWERUP_KINDS), s: ps, lateral: range(rng, -w / 2 + 1.2, w / 2 - 1.2), radius: 0.6 });
   }
+}
+
+function spawnBoost(track: Track, startS: number, endS: number) {
+  const rng = track.itemRng;
+  const { length, clearance, fullWidthChance } = CONFIG.boost;
+  const s = startS + range(rng, 0, Math.max(0, endS - startS - length - clearance));
+  const w = sampleAt(track, s).width;
+  const full = rng() < fullWidthChance;
+  const sign = side(rng);
+  // via gli ostacoli sulla pedana e a meno di `clearance` m (anche quelli del segmento precedente)
+  track.items = track.items.filter((it) => !isObstacle(it) || it.s < s - clearance || it.s > s + length + clearance);
+  add(track, { kind: "boost", s, lateral: full ? 0 : (sign * w) / 4, radius: full ? w / 2 : w / 4, length });
 }
 
 export function itemPosition(track: Track, it: Item) {

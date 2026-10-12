@@ -34,10 +34,11 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+const ATTRS = ["position", "aColor", "aAlpha"] as const;
 const WHITE = new THREE.Color("#ffffff");
 const YELLOW = new THREE.Color("#ffd84a");
 
-/** Scintille del drift: piccoli punti luminosi che schizzano dagli angoli posteriori del kart. */
+/** Scintille del drift: piccoli punti luminosi che schizzano dalla ruota posteriore esterna alla curva. */
 export class Sparks {
   private geometry = new THREE.BufferGeometry();
   private material = new THREE.ShaderMaterial({
@@ -68,15 +69,17 @@ export class Sparks {
     scene.add(this.points);
   }
 
-  /** `back`: direzione mondo verso il retro del kart (normalizzata). */
-  update(emitting: boolean, left: THREE.Vector3, right: THREE.Vector3, back: THREE.Vector3, dt: number, scale: number) {
+  /**
+   * `wheel`: ruota posteriore esterna, `side`: suo lato (-1 sinistra, 1 destra) per la spinta verso l'esterno.
+   * `back`: direzione mondo verso il retro del kart (normalizzata).
+   */
+  update(emitting: boolean, wheel: THREE.Vector3, side: -1 | 1, back: THREE.Vector3, dt: number, scale: number) {
     this.material.uniforms.uScale.value = scale;
     if (emitting) {
-      this.acc += dt * RATE;
+      this.acc += dt * RATE * 2;
       while (this.acc >= 1) {
         this.acc -= 1;
-        this.emit(left, back, -1);
-        this.emit(right, back, 1);
+        this.emit(wheel, back, side);
       }
     } else this.acc = 0;
     if (!this.live) return;
@@ -94,7 +97,7 @@ export class Sparks {
       if (t < 1) any = true;
     }
     this.live = any;
-    for (const name of ["position", "aColor", "aAlpha"]) this.geometry.getAttribute(name).needsUpdate = true;
+    for (const name of ATTRS) this.geometry.getAttribute(name).needsUpdate = true;
   }
 
   private emit(at: THREE.Vector3, back: THREE.Vector3, side: number) {

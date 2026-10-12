@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CONFIG, STEP } from "./config";
-import { createTrack, curveSignAt, extendTrack, project, sampleAt, trackLength } from "./track";
+import { createTrack, extendTrack, project, sampleAt, trackLength } from "./track";
 import { itemPosition } from "./items";
 
 describe("track", () => {
@@ -51,18 +51,34 @@ describe("track", () => {
     expect(r.lateral).toBeCloseTo(lat, 1);
   });
 
-  it("curveSignAt finds the next curve direction", () => {
-    const t = createTrack(2); extendTrack(t, 1000);
-    const i = t.samples.findIndex((p) => p.curvature !== 0);
-    expect(curveSignAt(t, i - 5, 25)).toBe(Math.sign(t.samples[i].curvature));
-  });
-
   it("spawns no items in the safe start and keeps obstacles spaced", () => {
     const t = createTrack(11); extendTrack(t, 6000);
     expect(t.items.length).toBeGreaterThan(20);
     for (const it of t.items) expect(it.s).toBeGreaterThanOrEqual(CONFIG.spawn.safeStart);
-    const obstacles = t.items.filter((i) => i.kind !== "coin" && i.kind !== "powerup").sort((a, b) => a.s - b.s);
+    const obstacles = t.items.filter((i) => i.kind !== "coin" && i.kind !== "powerup" && i.kind !== "boost").sort((a, b) => a.s - b.s);
     for (let i = 1; i < obstacles.length; i++) expect(obstacles[i].s - obstacles[i - 1].s).toBeGreaterThanOrEqual(6);
+  });
+
+  it("spawns boost pads on straights, half or full width, never near obstacles", () => {
+    const t = createTrack(15); extendTrack(t, 15000);
+    const pads = t.items.filter((i) => i.kind === "boost");
+    expect(pads.length).toBeGreaterThan(10);
+    expect(pads.some((p) => p.lateral === 0)).toBe(true);
+    expect(pads.some((p) => p.lateral > 0)).toBe(true);
+    expect(pads.some((p) => p.lateral < 0)).toBe(true);
+    const { length, clearance } = CONFIG.boost;
+    for (const p of pads) {
+      expect(p.length).toBe(length);
+      expect(p.s).toBeGreaterThanOrEqual(CONFIG.spawn.safeStart);
+      const w = sampleAt(t, p.s).width;
+      expect(Math.abs(p.lateral)).toBeCloseTo(p.lateral === 0 ? 0 : w / 4, 5);
+      // tutta la pedana su un rettilineo
+      for (let s = p.s; s <= p.s + length; s += 1) expect(sampleAt(t, s).curvature).toBe(0);
+    }
+    const obstacles = t.items.filter((i) => !["coin", "powerup", "boost"].includes(i.kind));
+    for (const p of pads) {
+      for (const o of obstacles) expect(o.s < p.s - clearance || o.s > p.s + length + clearance, `pad ${p.s} vs ${o.kind} ${o.s}`).toBe(true);
+    }
   });
 
   it("holes and barriers always leave at least 2.5m of free road", () => {

@@ -39,7 +39,7 @@ export function Menu({ profile, name, starting, shopAvailable, onPlay, onOpen }:
         {!shopAvailable && (
           <p className="text-center text-xs font-bold text-[#ffb4a8] text-outline-sm">Garage e Shop non disponibili: catalogo non raggiungibile</p>
         )}
-        <p className="mt-1 mb-2 text-center text-sm font-bold text-outline-sm">Tieni premuto per derapare</p>
+        <p className="mt-1 mb-2 text-center text-sm font-bold text-outline-sm">Tieni premuto a sinistra o a destra per derapare</p>
       </div>
     </div>
   );

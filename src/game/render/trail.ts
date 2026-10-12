@@ -4,8 +4,13 @@ const POOL = 96;
 const LIFE = 0.7;
 /** Particelle al secondo per ruota. */
 const RATE = 18;
-/** Diametro (m) dei fumi esagonali: da GROW_FROM a GROW_TO durante la vita. */
-const GROW_FROM = 0.4, GROW_TO = 1.6;
+/** Diametro (m) dei fumi esagonali: da GROW_FROM a GROW_TO durante la vita (piccoli: vicino alla camera sembrano enormi). */
+const GROW_FROM = 0.3, GROW_TO = 0.9;
+/** Opacità massima di uno sbuffo. */
+const MAX_ALPHA = 0.38;
+/** La ruota interna alla curva fuma meno di quella esterna. */
+const INNER_RATE = 0.35;
+const ATTRS = ["position", "aColor", "aAlpha", "aSize"] as const;
 /** Quanto il fumo tende al colore del bioma. */
 const TINT = 0.25;
 
@@ -61,6 +66,7 @@ export class Trail {
   private vel = new Float32Array(POOL * 3);
   private next = 0;
   private emitAcc = 0;
+  private innerAcc = 0;
   private emitted = 0;
   private live = false;
   private color = new THREE.Color();
@@ -90,18 +96,17 @@ export class Trail {
   /**
    * `scale`: pixel per metro a distanza 1 (altezza del buffer / (2 tan(fov/2))).
    * `tint`: colore del bioma verso cui tende il fumo.
+   * `outer`/`inner`: ruote posteriori esterna e interna alla curva.
    */
-  update(emitting: boolean, left: THREE.Vector3, right: THREE.Vector3, dt: number, time: number, scale: number, tint: THREE.Color) {
+  update(emitting: boolean, outer: THREE.Vector3, inner: THREE.Vector3, dt: number, time: number, scale: number, tint: THREE.Color) {
     this.material.uniforms.uScale.value = scale;
     this.tint.copy(tint);
     if (emitting) {
       this.emitAcc += dt * RATE;
-      while (this.emitAcc >= 1) {
-        this.emitAcc -= 1;
-        this.emit(left, time);
-        this.emit(right, time);
-      }
-    } else this.emitAcc = 0;
+      this.innerAcc += dt * RATE * INNER_RATE;
+      while (this.emitAcc >= 1) { this.emitAcc -= 1; this.emit(outer, time); }
+      while (this.innerAcc >= 1) { this.innerAcc -= 1; this.emit(inner, time); }
+    } else this.emitAcc = this.innerAcc = 0;
 
     if (!this.live && !emitting) return;
     let any = false;
@@ -109,7 +114,7 @@ export class Trail {
       if (this.age[i] >= LIFE) continue;
       const a = (this.age[i] = Math.min(LIFE, this.age[i] + dt));
       const t = a / LIFE;
-      this.alpha[i] = t >= 1 ? 0 : 0.5 * (1 - t) * Math.min(1, t * 8);
+      this.alpha[i] = t >= 1 ? 0 : MAX_ALPHA * (1 - t) * Math.min(1, t * 8);
       this.size[i] = this.stars ? 0.4 * (1 + t * 1.3) : GROW_FROM + (GROW_TO - GROW_FROM) * Math.sqrt(t);
       this.pos[i * 3] += this.vel[i * 3] * dt;
       this.pos[i * 3 + 1] += this.vel[i * 3 + 1] * dt;
@@ -117,7 +122,7 @@ export class Trail {
       if (t < 1) any = true;
     }
     this.live = any;
-    for (const name of ["position", "aColor", "aAlpha", "aSize"]) this.geometry.getAttribute(name).needsUpdate = true;
+    for (const name of ATTRS) this.geometry.getAttribute(name).needsUpdate = true;
   }
 
   private emit(at: THREE.Vector3, time: number) {

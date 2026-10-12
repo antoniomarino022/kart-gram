@@ -1,7 +1,7 @@
 # kart-gram
 
 Gioco endless di drift con i kart, giocabile come **Telegram Mini App**.
-Si gioca con un dito solo: tieni premuto per derapare in curva, rilasci per raddrizzare. Se cadi nel vuoto la partita finisce.
+Tieni premuto a sinistra o a destra dello schermo per derapare da quella parte, rilascia per andare dritto. Se cadi nel vuoto la partita finisce.
 Lo scopo è fare lo score più alto possibile.
 
 - **Frontend / gioco** (questo team): Next.js 16 + React 19 + three.js + Tailwind 4
@@ -18,16 +18,17 @@ npm run dev
 Apri http://localhost:3000. Per provarlo dentro Telegram serve un URL HTTPS pubblico, per esempio un tunnel con `cloudflared`.
 
 Comandi:
-- **Telefono:** tieni premuto il dito sullo schermo per derapare, rilascia per raddrizzare.
-- **PC:** tieni premuto il tasto sinistro del mouse oppure la **barra spaziatrice**.
+- **Telefono:** tieni premuto sulla metà sinistra dello schermo per curvare a sinistra, sulla metà destra per curvare a destra. Rilascia per andare dritto.
+- **PC:** click sinistro tenuto premuto sulle due metà dello schermo, oppure **←/→** o **A/D**.
 - Il bottone ❚❚ in alto a destra mette in pausa. Il gioco va in pausa da solo anche quando l'app passa in background.
 
 ## Come si gioca
 
-Il kart va avanti da solo. Quando arriva una curva tieni premuto: il kart derapa nella direzione della curva. Rilascia per raddrizzare. Se esci dalla strada cadi nel vuoto e la partita finisce.
+Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida. Quando arriva una curva tieni premuto dalla parte giusta (sinistra o destra) e il kart derapa da quella parte. Rilascia per andare dritto. Se esci dalla strada cadi nel vuoto e la partita finisce.
 
 - **Score:** distanza, derapate lunghe, linea perfetta (vicino al bordo interno della curva) e near-miss con gli ostacoli. La **combo** (fino a 5×) moltiplica i punti e si azzera se colpisci un ostacolo.
 - **Monete:** raccoglile sulla strada e spendile nel **Garage** per kart, vernici, ruote, scie e potenziamenti.
+- **Pedane boost:** tratti di strada colorati con frecce animate. Passandoci sopra il kart accelera per 1,5 s. Spesso coprono solo metà strada: sterza dalla parte giusta per prenderle.
 - **Power-up:** turbo, scudo, magnete, strada larga, slow-mo e x2 si attivano da soli quando li prendi.
 - **Revive:** una volta per partita puoi continuare con 500 monete, 5 ⭐ o un revive già comprato.
 - **Shop:** starter pack, pacchetti di monete e cosmetici esclusivi in Stelle.

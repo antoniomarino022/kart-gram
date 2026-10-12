@@ -1,5 +1,6 @@
 import { STEP } from "../core/config";
 import type { Track } from "../core/track";
+import { LEAD_IN, leadInSample } from "./leadIn";
 
 /** Edifici: blocchi dritti allineati agli assi, a 12–90 m dal centro strada (vicino alla strada si vede il suolo). */
 export const BUILDING = {
@@ -25,9 +26,18 @@ export function rectDistance(r: Footprint, px: number, py: number) {
   return Math.hypot(dx, dy);
 }
 
-/** true se il rettangolo resta ad almeno `clearance` m dal bordo strada per i campioni in [from, to]. */
+/**
+ * true se il rettangolo resta ad almeno `clearance` m dal bordo strada per i campioni in [from, to].
+ * Se l'intervallo arriva all'inizio della strada controlla anche il tratto visivo prima di s = 0.
+ */
 export function clearOfRoad(track: Track, r: Footprint, from: number, to: number, clearance: number = BUILDING.clearance) {
   const S = track.samples;
+  if (from <= 0 && to >= 0) {
+    for (let d = 1; d <= LEAD_IN; d += STEP) {
+      const q = leadInSample(track, d);
+      if (rectDistance(r, q.x, q.y) < clearance + q.width / 2) return false;
+    }
+  }
   const i0 = Math.max(0, from), i1 = Math.min(S.length - 1, to);
   for (let i = i0; i <= i1; i++) {
     const q = S[i];

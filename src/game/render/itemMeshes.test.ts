@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { createGame } from "../core/sim";
+import { boostGeometry } from "./boostPad";
 import { ItemMeshes } from "./itemMeshes";
 
 describe("ItemMeshes", () => {
@@ -29,5 +30,19 @@ describe("ItemMeshes", () => {
     expect(gets).toBe(2);
     im.dispose();
     expect(scene.children.length).toBe(0);
+  });
+
+  it("la pedana boost guarda verso l'alto (non viene scartata dal back-face culling) e copre la metà giusta", () => {
+    const st = createGame(5);
+    const base = { id: 1, kind: "boost" as const, s: 10, radius: 1.75, length: 12, speed: 0, consumed: false, passed: false, minDist: Infinity };
+    const g = boostGeometry(st.track, { ...base, lateral: 1.75 });
+    const pos = g.getAttribute("position"), idx = g.getIndex()!;
+    const v = (i: number) => new THREE.Vector3().fromBufferAttribute(pos, idx.getX(i));
+    for (let t = 0; t < idx.count; t += 3) {
+      const n = new THREE.Vector3().subVectors(v(t + 1), v(t)).cross(new THREE.Vector3().subVectors(v(t + 2), v(t)));
+      expect(n.y).toBeGreaterThan(0);
+    }
+    // sul rettilineo iniziale (verso -z) la metà sinistra ha x <= 0
+    for (let i = 0; i < pos.count; i++) expect(pos.getX(i)).toBeLessThanOrEqual(1e-6);
   });
 });

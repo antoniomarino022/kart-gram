@@ -3,6 +3,7 @@ import { CONFIG, DT } from "../core/config";
 import { itemPosition, type Item } from "../core/items";
 import type { GameState } from "../core/sim";
 import { sampleAt, type Track } from "../core/track";
+import { boostGeometry, createBoostMaterial } from "./boostPad";
 import type { ModelLibrary } from "./models";
 
 /** Oltre questa distanza davanti al kart gli oggetti non vengono creati. */
@@ -10,7 +11,7 @@ const VIEW_AHEAD = 200;
 const DECAL_LIFT = 0.02;
 const HALF_PI = Math.PI / 2;
 
-/** `pool`: chiave della free list in cui rimettere l'oggetto alla rimozione (assente per il ghiaccio, che ha geometria propria). */
+/** `pool`: chiave della free list in cui rimettere l'oggetto alla rimozione (assente per ghiaccio e pedane, che hanno geometria propria). */
 interface Entry { obj: THREE.Object3D; seen: number; pool?: string; ownGeometry?: THREE.BufferGeometry }
 
 const MODEL_OF: Partial<Record<Item["kind"], string>> = {
@@ -24,7 +25,7 @@ function decalMaterial<T extends THREE.Material>(m: T): T {
   return m;
 }
 
-/** Oggetti sulla strada: modelli (coni, barriere, rival, monete, power-up) e decal piatti (olio, buchi, ghiaccio). */
+/** Oggetti sulla strada: modelli (coni, barriere, rival, monete, power-up) e decal piatti (olio, buchi, ghiaccio, pedane boost). */
 export class ItemMeshes {
   private entries = new Map<number, Entry>();
   private frame = 0;
@@ -41,6 +42,8 @@ export class ItemMeshes {
     color: "#c4ecff", roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.6, depthWrite: false,
   }));
 
+  private boostMat = createBoostMaterial();
+
   constructor(private scene: THREE.Scene, private models: ModelLibrary) {}
 
   /** Da chiamare a ogni frame: rilegge sempre `state.track.items` (l'array viene riassegnato dalla sim). */
@@ -49,6 +52,7 @@ export class ItemMeshes {
     const track = state.track;
     const limit = state.kart.s + VIEW_AHEAD;
     const timeScale = state.powerups.slowmo > 0 ? CONFIG.slowmoTimeScale : 1;
+    this.boostMat.uniforms.uTime.value = time;
 
     for (const it of track.items) {
       if (it.consumed || it.s > limit) continue;
@@ -59,7 +63,7 @@ export class ItemMeshes {
         this.scene.add(e.obj);
       }
       e.seen = frame;
-      if (it.kind === "ice") continue;
+      if (it.kind === "ice" || it.kind === "boost") continue;
       // i rival avanzano a ogni tick (solo entro 120 m dal kart): interpola tra il tick precedente e il corrente
       const lag = it.kind === "rival" && state.phase === "running" && it.s - state.kart.s < 120 ? it.speed * DT * timeScale * (1 - alpha) : 0;
       this.place(track, it, lag, e.obj, time);
@@ -74,6 +78,12 @@ export class ItemMeshes {
     if (it.kind === "ice") {
       const geo = iceGeometry(track, it);
       return { obj: new THREE.Mesh(geo, this.iceMat), seen: 0, ownGeometry: geo };
+    }
+    if (it.kind === "boost") {
+      const geo = boostGeometry(track, it);
+      const mesh = new THREE.Mesh(geo, this.boostMat);
+      mesh.renderOrder = 1;
+      return { obj: mesh, seen: 0, ownGeometry: geo };
     }
     const pool = it.kind === "oil" || it.kind === "hole" ? it.kind : it.kind === "powerup" ? `powerup_${it.powerup}` : MODEL_OF[it.kind]!;
     const obj = this.free.get(pool)?.pop() ?? this.build(pool);
@@ -135,7 +145,7 @@ export class ItemMeshes {
     this.free.clear();
     this.circle.dispose();
     this.ring.dispose();
-    for (const m of [this.oilMat, this.holeMat, this.rimMat, this.iceMat]) m.dispose();
+    for (const m of [this.oilMat, this.holeMat, this.rimMat, this.iceMat, this.boostMat]) m.dispose();
   }
 }
 
@@ -152,7 +162,7 @@ function iceGeometry(track: Track, it: Item) {
     pos.push(p.x - sx * h, y, -(p.y - sy * h), p.x + sx * h, y, -(p.y + sy * h));
     if (i > 0) {
       const a = (i - 1) * 2;
-      index.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      index.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); // antiorario visto dall'alto: faccia verso il cielo
     }
   }
   const g = new THREE.BufferGeometry();

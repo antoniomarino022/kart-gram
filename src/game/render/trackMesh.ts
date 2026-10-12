@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { CONFIG, STEP } from "../core/config";
 import type { Track, TrackSample } from "../core/track";
+import { leadInSamples } from "./leadIn";
 import { biomeAt } from "./palette";
 
 /** Campioni per chunk: il chunk k copre i campioni [50k, 50k+50] (bordo condiviso, nessun buco). */
@@ -92,8 +93,10 @@ export class TrackMeshes {
 
     const top = new Builder();
     const ext = new Builder();
-    for (let i = i0; i < i1; i++) {
-      const a = S[i], b = S[i + 1];
+    // il chunk 0 comincia con il tratto dritto solo visivo prima di s = 0
+    const list = k === 0 ? [...leadInSamples(track), ...S.slice(1, i1 + 1)] : S.slice(i0, i1 + 1);
+    for (let i = 0; i < list.length - 1; i++) {
+      const a = list[i], b = list[i + 1];
       const ha = a.width / 2, hb = b.width / 2;
       const dash = Math.floor(a.s / 2) % 2 === 0;
       // superficie: bordo sx | strada | linea centrale | strada | bordo dx
@@ -111,8 +114,8 @@ export class TrackMeshes {
       ext.quad(a, b, ha, ha + WIDE, LIFT / 2, LIFT / 2, white, hb, hb + WIDE);
     }
     if (k === 0) {
-      // tappo all'inizio della strada: quad verticale sul primo campione
-      const a = S[0], h = a.width / 2;
+      // tappo all'inizio della strada: quad verticale sul primo campione (inizio del tratto visivo)
+      const a = list[0], h = a.width / 2;
       const t: number[] = [];
       point(a, -h, 0, t); point(a, h, 0, t); point(a, -h, -SLAB, t); point(a, h, -SLAB, t);
       for (const v of [0, 2, 1, 1, 2, 3]) { top.pos.push(t[v * 3], t[v * 3 + 1], t[v * 3 + 2]); top.col.push(side.r, side.g, side.b); }

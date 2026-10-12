@@ -4,6 +4,7 @@ import { mulberry32 } from "../core/rng";
 import { createTrack, extendTrack } from "../core/track";
 import { BUILDING, clearOfRoad, newCluster, placeBuilding, rectDistance } from "./buildingPlacement";
 import { Buildings } from "./buildings";
+import { leadInSamples } from "./leadIn";
 
 describe("rectDistance", () => {
   it("0 dentro, distanza euclidea fuori", () => {
@@ -15,6 +16,24 @@ describe("rectDistance", () => {
 });
 
 describe("placeBuilding", () => {
+  it("rispetta anche il tratto visivo prima di s = 0", () => {
+    const track = createTrack(4);
+    extendTrack(track, 600);
+    const rand = mulberry32(8);
+    const lead = leadInSamples(track);
+    let placed = 0;
+    for (let n = 0; n < 300; n++) {
+      const p = placeBuilding(track, newCluster(rand() * 40, rand), rand);
+      if (!p) continue;
+      placed++;
+      for (const q of lead) expect(rectDistance(p, q.x, q.y)).toBeGreaterThanOrEqual(BUILDING.clearance + q.width / 2 - 1e-9);
+    }
+    expect(placed).toBeGreaterThan(50);
+    // un blocco proprio sul tratto visivo viene rifiutato
+    const q = lead[10];
+    expect(clearOfRoad(track, { x: q.x, y: q.y, halfW: 2, halfD: 2 }, -320, 320)).toBe(false);
+  });
+
   it("non invade mai la strada: almeno 6 m dal bordo di ogni campione", () => {
     const track = createTrack(11);
     extendTrack(track, 3000);

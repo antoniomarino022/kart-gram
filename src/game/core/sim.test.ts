@@ -54,7 +54,7 @@ describe("sim", () => {
     }
     expect(speeds.at(-1)!).toBeGreaterThan(speeds[0]);
     for (let i = 1; i < speeds.length; i++) expect(speeds[i]).toBeGreaterThanOrEqual(speeds[i - 1]);
-    expect(Math.max(...speeds)).toBeLessThanOrEqual(CONFIG.speed.max);
+    expect(Math.max(...speeds)).toBeLessThanOrEqual(CONFIG.speed.max * (1 + CONFIG.speed.comboBonus * (CONFIG.comboMax - 1)));
   });
 
   it("golden replay: same seed + inputs = same score", () => {
@@ -76,48 +76,95 @@ describe("sim", () => {
     it(`drift ${steer > 0 ? "left" : "right"} turns that way and gives a driftEnd event and combo points`, () => {
       const st = createGame(1, undefined, { spawnItems: false });
       const a0 = st.kart.angle;
-      for (let i = 0; i < 32; i++) step(st, steer); // ~0.53s di drift (più a lungo uscirebbe di strada)
+      for (let i = 0; i < 8; i++) step(st, steer);
       expect(Math.sign(st.kart.angle - a0)).toBe(steer);
-      expect(Math.sign(st.kart.lateral)).toBe(steer);
       expect(st.lastSteer).toBe(steer);
+      // il muso gira prima della direzione di moto: il kart derapa
+      expect(Math.sign(st.kart.angle - st.kart.moveAngle)).toBe(steer);
+      // slalom (~0.53 s di drift in tutto) per restare in strada
+      for (let i = 0; i < 16; i++) step(st, -steer as Steer);
+      for (let i = 0; i < 8; i++) step(st, steer);
+      expect(st.phase).toBe("running");
       step(st, 0);
       expect(st.events.some((e) => e.type === "driftEnd")).toBe(true);
       expect(st.comboPoints).toBe(1);
     });
   }
 
-  it("released, the heading stays constant (the road does not steer the kart)", () => {
+  it("steering is smooth: the yaw rate ramps up and eases out instead of jumping", () => {
     const st = createGame(1, undefined, { spawnItems: false });
-    for (let i = 0; i < 10; i++) step(st, 1);
-    const a = st.kart.angle;
-    for (let i = 0; i < 20; i++) step(st, 0);
-    expect(st.kart.angle).toBe(a);
+    const max = st.kart.speed / CONFIG.turnRadius;
+    step(st, 1);
+    expect(st.kart.yawRate).toBeGreaterThan(0);
+    expect(st.kart.yawRate).toBeLessThan(max * 0.3);
+    for (let i = 0; i < 15; i++) step(st, 1);
+    expect(st.kart.yawRate).toBeGreaterThan(max * 0.9);
+    step(st, 0);
+    expect(st.kart.yawRate).toBeGreaterThan(max * 0.7);
   });
 
-  it("on ice the kart keeps sliding briefly after release, then goes straight", () => {
+  it("released, the kart settles and then the heading stays constant (the road does not steer the kart)", () => {
     const st = createGame(1, undefined, { spawnItems: false });
-    st.track.items.push(pad({ id: 990, kind: "ice", s: 0, lateral: 0, radius: 0, length: 40 }));
-    for (let i = 0; i < 5; i++) step(st, -1);
+    for (let i = 0; i < 6; i++) step(st, 1);
+    for (let i = 0; i < 6; i++) step(st, -1);
+    for (let i = 0; i < 50; i++) step(st, 0);
+    expect(st.phase).toBe("running");
     const a = st.kart.angle;
-    step(st, 0);
-    expect(st.kart.angle).toBeLessThan(a); // continua a destra
-    for (let i = 0; i < 30; i++) step(st, 0);
-    const b = st.kart.angle;
-    step(st, 0);
-    expect(st.kart.angle).toBe(b);
+    for (let i = 0; i < 10; i++) step(st, 0);
+    expect(st.kart.yawRate).toBe(0);
+    expect(st.kart.angle).toBe(a);
+    expect(st.kart.moveAngle).toBeCloseTo(a, 2);
+  });
+
+  it("on ice the kart keeps turning longer after release and slides more", () => {
+    const run = (ice: boolean) => {
+      const st = createGame(1, undefined, { spawnItems: false });
+      if (ice) st.track.items.push(pad({ id: 990, kind: "ice", s: 0, lateral: 0, radius: 0, length: 40 }));
+      for (let i = 0; i < 12; i++) step(st, -1);
+      const a = st.kart.angle;
+      for (let i = 0; i < 12; i++) step(st, 0);
+      return { turned: a - st.kart.angle, slip: Math.abs(st.kart.angle - st.kart.moveAngle), yaw: st.kart.yawRate };
+    };
+    const dry = run(false), ice = run(true);
+    expect(ice.turned).toBeGreaterThan(0); // continua a destra dopo il rilascio
+    expect(Math.abs(ice.yaw)).toBeGreaterThan(Math.abs(dry.yaw));
+    expect(ice.slip).toBeGreaterThan(dry.slip);
   });
 
   it("a boost pad speeds the kart up and emits boost once", () => {
     const st = createGame(1, undefined, { spawnItems: false });
     const base = st.kart.speed;
     st.track.items.push(pad({ id: 991, kind: "boost", s: 5, lateral: 0, radius: 3.5, length: 12 }));
-    let boosts = 0;
-    for (let i = 0; i < 60; i++) { step(st, 0); boosts += st.events.filter((e) => e.type === "boost").length; }
+    let boosts = 0, top = 0;
+    for (let i = 0; i < 90; i++) { step(st, 0); boosts += st.events.filter((e) => e.type === "boost").length; top = Math.max(top, st.kart.speed); }
     expect(boosts).toBe(1);
-    expect(st.kart.speed).toBeCloseTo(base * CONFIG.boost.speedFactor, 5);
-    for (let i = 0; i < 60 * 2; i++) step(st, 0);
+    expect(top).toBeGreaterThan(base * 1.2);
+    expect(top).toBeLessThanOrEqual(base * CONFIG.boost.speedFactor + 1e-9);
+    for (let i = 0; i < 60 * 3; i++) step(st, 0);
     expect(st.boostTimer).toBe(0);
     expect(st.kart.speed).toBe(base);
+  });
+
+  it("combo makes the kart faster, approaching the target smoothly", () => {
+    const st = createGame(1, undefined, { spawnItems: false });
+    st.comboPoints = CONFIG.comboStep * 10;
+    step(st, 0);
+    expect(st.combo).toBe(CONFIG.comboMax);
+    const target = CONFIG.speed.base * (1 + CONFIG.speed.comboBonus * (CONFIG.comboMax - 1));
+    expect(st.kart.speed).toBeLessThan(CONFIG.speed.base + 1); // niente salto
+    for (let i = 0; i < 60 * 3; i++) step(st, 0);
+    expect(st.kart.speed).toBeCloseTo(target, 5);
+  });
+
+  it("the road is drivable at max combo speed: the bot survives 1500m", () => {
+    for (const seed of [1, 2, 3]) {
+      const st = createGame(seed, undefined, { spawnItems: false });
+      while (st.tick < 60 * 60 * 3 && st.phase !== "over" && st.kart.s < 1600) {
+        st.comboPoints = CONFIG.comboStep * 10;
+        step(st, botSteer(st));
+      }
+      expect(st.kart.s, `seed ${seed}`).toBeGreaterThan(1500);
+    }
   });
 
   it("a half-road boost pad only works on its side", () => {
@@ -161,14 +208,58 @@ describe("sim", () => {
     expect(st.powerups.magnet).toBeGreaterThan(CONFIG.powerupBase.magnet + 1.5);
   });
 
-  it("shield saves from one fall", () => {
-    const st = createGame(1);
+  it("shield absorbs one obstacle hit (no slowdown, combo kept) but never saves from a fall", () => {
+    const st = createGame(1, undefined, { spawnItems: false });
     st.powerups.shield = 1;
+    st.comboPoints = 6;
+    st.track.items.push(pad({ id: 996, kind: "cone", s: 10, lateral: 0, radius: 0.4, length: 0 }));
     let used = false;
-    for (let i = 0; i < 60 * 30 && st.phase === "running" && !used; i++) { step(st, 0); used = st.events.some((e) => e.type === "shieldUsed"); }
+    for (let i = 0; i < 60 && !used; i++) { step(st, 0); used = st.events.some((e) => e.type === "shieldUsed"); }
     expect(used).toBe(true);
-    expect(st.phase).toBe("running");
-    expect(Math.abs(st.kart.lateral)).toBeLessThan(0.01);
+    expect(st.powerups.shield).toBe(0);
+    expect(st.comboPoints).toBe(6);
+    expect(st.slowTimer).toBe(0);
+    expect(st.lives).toBe(CONFIG.lives);
+
+    const fall = createGame(1);
+    fall.powerups.shield = 1;
+    while (fall.phase === "running") step(fall, 0);
+    expect(fall.phase).toBe("falling");
+    expect(fall.powerups.shield).toBe(1);
+  });
+
+  it("each hit costs a life; at 0 lives the kart crashes, stops and the run is over", () => {
+    const st = createGame(1, undefined, { spawnItems: false });
+    for (const [i, s] of [12, 40, 70].entries()) st.track.items.push(pad({ id: 980 + i, kind: "cone", s, lateral: 0, radius: 0.4, length: 0 }));
+    const lives: number[] = [];
+    let crashTick = -1;
+    for (let i = 0; i < 60 * 10 && st.phase !== "over"; i++) {
+      step(st, 0);
+      for (const e of st.events) {
+        if (e.type === "lifeLost") lives.push(e.lives);
+        if (e.type === "crash") crashTick = st.tick;
+      }
+    }
+    expect(lives).toEqual([2, 1, 0]);
+    expect(crashTick).toBeGreaterThan(0);
+    expect(st.phase).toBe("over");
+    expect(st.endReason).toBe("crash");
+    expect(st.kart.speed).toBe(0);
+    expect(st.tick - crashTick).toBeCloseTo(CONFIG.crashDuration * 60, -1);
+    expect(revive(st)).toBe(true);
+    expect(st.lives).toBe(CONFIG.lives);
+    expect(st.kart.speed).toBeGreaterThan(0);
+  });
+
+  it("a heart heals one life, up to the max", () => {
+    const st = createGame(1, undefined, { spawnItems: false });
+    st.lives = 1;
+    st.track.items.push(pad({ id: 970, kind: "powerup", s: 8, lateral: 0, radius: 0.6, length: 0 }), pad({ id: 971, kind: "powerup", s: 20, lateral: 0, radius: 0.6, length: 0 }), pad({ id: 972, kind: "powerup", s: 32, lateral: 0, radius: 0.6, length: 0 }));
+    for (const it of st.track.items) if (it.kind === "powerup") it.powerup = "heart";
+    const gained: number[] = [];
+    for (let i = 0; i < 120; i++) { step(st, 0); for (const e of st.events) if (e.type === "lifeGained") gained.push(e.lives); }
+    expect(gained).toEqual([2, 3, 3]);
+    expect(st.lives).toBe(CONFIG.lives);
   });
 
   it("revive works once and replay with revived matches", () => {

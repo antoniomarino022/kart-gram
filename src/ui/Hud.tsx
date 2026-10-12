@@ -5,6 +5,7 @@ import type { Game, HudSnapshot } from "@/game/Game";
 import { CONFIG } from "@/game/core/config";
 import type { PowerupKind } from "@/game/core/items";
 import type { UpgradeLevels } from "@/game/core/sim";
+import { FirstRunHint } from "./FirstRunHint";
 import { fmt } from "./loadout";
 import { PauseOverlay } from "./PauseOverlay";
 
@@ -19,7 +20,7 @@ const POWERUPS: { kind: PowerupKind; label: string; icon: string; color: string 
 
 /** Durata piena di un power-up a tempo, per la barra (lo scudo non scade). */
 function fullDuration(kind: PowerupKind, upgrades: UpgradeLevels): number {
-  if (kind === "shield") return 1;
+  if (kind === "shield" || kind === "heart") return 1;
   if (kind === "wide") return CONFIG.powerupBase.wide;
   return CONFIG.powerupBase[kind] + upgrades[kind] * CONFIG.upgradePerLevel[kind];
 }
@@ -45,11 +46,13 @@ export function Hud({ game, bestScore, upgrades, onExit }: { game: Game; bestSco
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
+      <FirstRunHint />
       <div className="pt-safe flex items-start justify-between gap-2 px-4">
         <div className="min-w-0">
           <div className="text-sm font-black italic tracking-wide text-outline-sm">BEST {fmt(best)}</div>
           <div className="text-5xl leading-none font-black italic tabular-nums text-outline">{fmt(snap.score)}</div>
           <div className="mt-1 text-lg font-black italic text-outline-sm">🪙 {fmt(snap.coins)}</div>
+          <div className="text-lg leading-none" aria-label={`${snap.lives} vite`}>{"❤️".repeat(snap.lives)}{"🤍".repeat(Math.max(0, CONFIG.lives - snap.lives))}</div>
         </div>
         <div className="flex items-start gap-3">
           <div

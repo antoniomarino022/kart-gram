@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { GameState } from "../core/sim";
+import { CONFIG } from "../core/config";
 import { sampleAt } from "../core/track";
 import { Buildings } from "./buildings";
 import { Environment } from "./environment";
@@ -16,24 +17,29 @@ import { Trail } from "./trail";
 export type { Loadout } from "./kart";
 export { ALL_MODEL_NAMES } from "./models";
 
-export interface KartPose { x: number; y: number; angle: number; elevation: number }
+export interface KartPose { x: number; y: number; angle: number; moveAngle: number; yawRate: number; elevation: number }
 
 const HALF_PI = Math.PI / 2;
 /** Camera bassa e vicina (schermo orizzontale): dietro di CAM_BACK, alta CAM_UP, guarda LOOK_AHEAD avanti e LOOK_UP sopra il kart. */
 const CAM_BACK = 4.8, CAM_UP = 2.3, LOOK_AHEAD = 6, LOOK_UP = 0.8;
 /** In verticale (telefono) l'inquadratura è stretta: camera un po' più indietro e FOV più ampio, così il kart resta ~1/3 della larghezza. */
 const CAM_BACK_PORTRAIT = 6.6, CAM_UP_PORTRAIT = 3, FOV_PORTRAIT = 70;
-/** Peso della direzione del kart (il resto è la tangente della strada) nello yaw della camera. */
-const CAM_KART_WEIGHT = 0.3;
+/** Peso della direzione di moto del kart (il resto è la tangente della strada) nello yaw della camera. */
+const CAM_KART_WEIGHT = 0.35;
+/** Rollio della camera verso l'interno della curva: rad per rad/s di velocità angolare, al massimo 3°. */
+const CAM_ROLL_PER_YAW = 0.012, CAM_ROLL_MAX = 0.052;
 /** La tangente si legge poco più avanti del kart, così la camera anticipa le curve. */
 const TANGENT_AHEAD = 3;
 const FOG_NEAR = 40, FOG_FAR = 280;
-const FOV = 60, FOV_TURBO_BONUS = 12;
-const DRIFT_YAW = 0.35, DRIFT_ROLL = 0.08, DRIFT_EASE_TIME = 0.15;
+const FOV = 60, FOV_TURBO_BONUS = 8, FOV_BOOST_BONUS = 5;
+/** Gradi di FOV in più dalla velocità base a quella massima (bioma massimo e combo x5): 70 → 80 in verticale. */
+const FOV_SPEED_BONUS = 10;
+const TOP_SPEED = CONFIG.speed.max * (1 + CONFIG.speed.comboBonus * (CONFIG.comboMax - 1));
+/** Carrozzeria: rollio verso l'esterno (rad per rad/s, max), schiacciamento in curva, sterzata visiva delle ruote. */
+const BODY_ROLL = 0.03, BODY_ROLL_MAX = 0.14, BODY_SQUASH = 0.05, WHEEL_STEER = 0.4;
 
 const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const smooth = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
-const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 export class GameRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -61,8 +67,10 @@ export class GameRenderer {
   private camHeading = 0;
   private fallCamY: number | null = null;
   private fallLookY = 0;
-  private drift = 0;
-  private driftSign = 1;
+  private camRoll = 0;
+  private wheelSteer = 0;
+  /** Lato esterno alla curva (+1 destra), per fumo e scintille. */
+  private outerSide: -1 | 1 = 1;
   private v1 = new THREE.Vector3();
   private v2 = new THREE.Vector3();
   private v3 = new THREE.Vector3();
@@ -129,6 +137,9 @@ export class GameRenderer {
     const y = prev.y + (k.y - prev.y) * alpha;
     const elev = prev.elevation + (k.elevation - prev.elevation) * alpha;
     const angle = prev.angle + angleDiff(k.angle, prev.angle) * alpha;
+    const moveAngle = prev.moveAngle + angleDiff(k.moveAngle, prev.moveAngle) * alpha;
+    const yawRate = prev.yawRate + (k.yawRate - prev.yawRate) * alpha;
+    // il corpo segue il muso vero: la derapata si vede perché il muso punta dentro la curva mentre il kart scivola
     const yaw = angle - HALF_PI;
 
     const e0 = sampleAt(state.track, k.s - 1).elevation, e1 = sampleAt(state.track, k.s + 1).elevation;
@@ -137,13 +148,18 @@ export class GameRenderer {
     root.position.set(x, elev - k.fallDepth, -y);
     root.rotation.set(pitch, yaw, 0);
 
-    // drift visivo: yaw extra verso l'interno della curva e leggero rollio
-    if (k.drifting) this.driftSign = state.lastSteer;
-    this.drift = Math.max(0, Math.min(1, this.drift + (k.drifting ? dt : -dt) / DRIFT_EASE_TIME));
-    const d = smoothstep(this.drift);
-    this.kart.pivot.rotation.set(0, DRIFT_YAW * this.driftSign * d, -DRIFT_ROLL * this.driftSign * d);
+    // rollio verso l'esterno e leggero schiacciamento proporzionali alla velocità angolare; ruote anteriori che sterzano
+    const roll = Math.max(-BODY_ROLL_MAX, Math.min(BODY_ROLL_MAX, -BODY_ROLL * yawRate));
+    this.kart.pivot.rotation.set(0, 0, roll);
+    const squash = Math.min(1, Math.abs(yawRate) / 3) * BODY_SQUASH;
+    this.kart.pivot.scale.set(1 + squash * 0.5, 1 - squash, 1);
+    this.wheelSteer += ((running && k.drifting ? state.lastSteer * WHEEL_STEER : 0) - this.wheelSteer) * smooth(14, dt);
+    this.kart.steerWheels(this.wheelSteer);
+    const slip = angleDiff(angle, moveAngle);
+    if (Math.abs(slip) > 0.01) this.outerSide = slip > 0 ? 1 : -1;
 
     const turbo = state.powerups.turbo > 0;
+    const boost = running && state.boostTimer > 0;
     this.kart.update({
       speed: k.speed, dt, time: this.time,
       blink: state.invulnTimer > 0 && Math.floor(this.time * 12) % 2 === 0,
@@ -153,7 +169,9 @@ export class GameRenderer {
     root.updateMatrixWorld(true);
 
     const tangent = sampleAt(state.track, k.s + TANGENT_AHEAD).angle;
-    this.updateCamera(x, elev, -y, angle, tangent, falling, dt, turbo);
+    const speedFrac = Math.max(0, Math.min(1, (k.speed - CONFIG.speed.base) / (TOP_SPEED - CONFIG.speed.base)));
+    const fovBonus = FOV_SPEED_BONUS * speedFrac + (turbo ? FOV_TURBO_BONUS : 0) + (boost ? FOV_BOOST_BONUS : 0);
+    this.updateCamera(x, elev, -y, moveAngle, running ? yawRate : 0, tangent, falling, dt, fovBonus);
     this.env.update(this.colors, this.camera, state.track, k.s, x, -y, dt);
 
     this.track.update(state.track, k.s, state.powerups.wide > 0);
@@ -164,14 +182,14 @@ export class GameRenderer {
     const pxPerMeter = this.size.y / (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2));
     const drifting = running && k.drifting;
     // girando a sinistra (+1) il retro scivola a destra: fumo e scintille escono soprattutto dalla ruota esterna
-    const outerSide = this.driftSign >= 0 ? 1 : -1;
+    const outerSide = this.outerSide;
     const outer = this.kart.rearWheel(outerSide, this.v1), inner = this.kart.rearWheel(-outerSide as -1 | 1, this.v2);
     this.trail.update(drifting, outer, inner, dt, this.time, pxPerMeter, this.colors.horizon);
     this.v3.set(-Math.cos(angle), 0, Math.sin(angle)); // retro del kart in coordinate three
     this.sparks.update(drifting, outer, outerSide, this.v3, dt, pxPerMeter);
     this.streaks.update(
       this.kart.tailLight(-1, this.v3), this.kart.tailLight(1, this.v4), this.time, dt,
-      drifting || turbo, k.fallDepth === 0,
+      boost ? 1.4 : drifting || turbo ? 1 : 0.45, k.fallDepth === 0,
     );
 
     this.renderer.render(this.scene, this.camera);
@@ -187,11 +205,14 @@ export class GameRenderer {
     this.sun.intensity = 0.9 * c.intensity;
   }
 
-  /** `angle`: direzione del kart, `tangent`: direzione della strada poco avanti (entrambe in coordinate core). */
-  private updateCamera(kx: number, ky: number, kz: number, angle: number, tangent: number, falling: boolean, dt: number, turbo: boolean) {
-    // yaw: soprattutto la strada, un po' il kart, così in drift la strada davanti resta al centro
-    const target = tangent + angleDiff(angle, tangent) * CAM_KART_WEIGHT;
-    this.camHeading += angleDiff(target, this.camHeading) * (this.first ? 1 : smooth(6, dt));
+  /**
+   * `moveAngle`: direzione di moto del kart, `tangent`: direzione della strada poco avanti (coordinate core).
+   * `yawRate`: velocità angolare del muso, per un leggero rollio della camera verso l'interno della curva.
+   */
+  private updateCamera(kx: number, ky: number, kz: number, moveAngle: number, yawRate: number, tangent: number, falling: boolean, dt: number, fovBonus: number) {
+    // yaw: soprattutto la strada, un po' il moto del kart, con un leggero ritardo: niente scatti
+    const target = tangent + angleDiff(moveAngle, tangent) * CAM_KART_WEIGHT;
+    this.camHeading += angleDiff(target, this.camHeading) * (this.first ? 1 : smooth(5, dt));
     const fx = Math.cos(this.camHeading), fz = -Math.sin(this.camHeading);
 
     // in caduta la camera non scende: il kart esce dall'inquadratura
@@ -209,8 +230,11 @@ export class GameRenderer {
     const back = CAM_BACK + (CAM_BACK_PORTRAIT - CAM_BACK) * this.portrait;
     this.camera.position.set(kx - fx * back, this.camY, kz - fz * back);
     this.camera.lookAt(kx + fx * LOOK_AHEAD, this.camLookY, kz + fz * LOOK_AHEAD);
+    const roll = Math.max(-CAM_ROLL_MAX, Math.min(CAM_ROLL_MAX, yawRate * CAM_ROLL_PER_YAW));
+    this.camRoll += (roll - this.camRoll) * (this.first ? 1 : smooth(4, dt));
+    this.camera.rotateZ(this.camRoll);
 
-    const fov = FOV + (FOV_PORTRAIT - FOV) * this.portrait + (turbo ? FOV_TURBO_BONUS : 0);
+    const fov = FOV + (FOV_PORTRAIT - FOV) * this.portrait + fovBonus;
     if (Math.abs(fov - this.camera.fov) > 0.01) {
       this.camera.fov += (fov - this.camera.fov) * smooth(4, dt);
       this.camera.updateProjectionMatrix();

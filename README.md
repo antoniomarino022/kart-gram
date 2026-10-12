@@ -24,12 +24,13 @@ Comandi:
 
 ## Come si gioca
 
-Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida. Quando arriva una curva tieni premuto dalla parte giusta (sinistra o destra) e il kart derapa da quella parte. Rilascia per andare dritto. Se esci dalla strada cadi nel vuoto e la partita finisce.
+Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida. Quando arriva una curva tieni premuto dalla parte giusta (sinistra o destra) e il kart derapa da quella parte. Rilascia per andare dritto. Se esci dalla strada cadi nel vuoto e la partita finisce subito. Hai 3 vite: ogni urto con un ostacolo ne toglie una e a 0 il kart si schianta.
 
 - **Score:** distanza, derapate lunghe, linea perfetta (vicino al bordo interno della curva) e near-miss con gli ostacoli. La **combo** (fino a 5×) moltiplica i punti e si azzera se colpisci un ostacolo.
 - **Monete:** raccoglile sulla strada e spendile nel **Garage** per kart, vernici, ruote, scie e potenziamenti.
 - **Pedane boost:** tratti di strada colorati con frecce animate. Passandoci sopra il kart accelera per 1,5 s. Spesso coprono solo metà strada: sterza dalla parte giusta per prenderle.
-- **Power-up:** turbo, scudo, magnete, strada larga, slow-mo e x2 si attivano da soli quando li prendi.
+- **Velocità:** cresce a ogni bioma e con la combo (fino a +48% a x5). Un urto azzera la combo e rallenta.
+- **Power-up:** turbo, scudo (assorbe un urto), magnete, strada larga, slow-mo, x2 e cuore (+1 vita) si attivano da soli quando li prendi.
 - **Revive:** una volta per partita puoi continuare con 500 monete, 5 ⭐ o un revive già comprato.
 - **Shop:** starter pack, pacchetti di monete e cosmetici esclusivi in Stelle.
 
@@ -124,6 +125,7 @@ Per rigenerare i segnaposto: `npm run models`.
 | `powerup_wide` | Piastra larga verde con frecce | 0.9 m |
 | `powerup_slowmo` | Clessidra viola | 0.8 m |
 | `powerup_x2` | Due cubi gialli | 0.8 m |
+| `powerup_heart` | Cuore rosso (due sfere + cubo ruotato) | 0.8 m |
 | `deco_city_1..3` | Torri blu | alte 14–19 m |
 | `deco_desert_1..3` | Piramide, arco, cactus | alte 6–8.5 m (la piramide è larga 14 m) |
 | `deco_ice_1..3` | Cristallo, cubi di neve, gruppo di cristalli | alte 4.7–9.2 m |

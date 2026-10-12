@@ -101,3 +101,10 @@ body {
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 .animate-toast { animation: toast-in 180ms ease-out both; }
+
+/* zone sinistra/destra mostrate alla prima partita: restano un attimo e svaniscono */
+@keyframes hint-fade {
+  0%, 75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-hint { animation: hint-fade 3200ms ease-in both; }

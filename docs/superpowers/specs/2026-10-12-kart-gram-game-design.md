@@ -20,6 +20,7 @@ Una partita dura in genere 45–90 secondi e il restart è istantaneo.
 - **Rilasciato:** il kart va dritto, con la direzione che ha in quel momento.
 - Con più dita conta l'ultima premuta; se la rilasci torna a valere quella ancora premuta.
 - Su PC: click del mouse sulle due metà dello schermo, oppure ←/→ o A/D.
+- La sterzata è morbida: la velocità di rotazione sale in ~0,1 s e si spegne in ~0,15 s al rilascio. Il muso gira prima della direzione di moto, quindi in curva il kart derapa di lato; l'aderenza è per metro percorso, così la derapata ha la stessa forma a ogni velocità. Su ghiaccio e olio l'aderenza è minore e il kart scivola di più.
 
 ### Strada
 - È un nastro 3D generato all'infinito, a segmenti: rettilinei, curve a sinistra e a destra di angolo variabile, salite e discese, tratti stretti.
@@ -31,18 +32,26 @@ Una partita dura in genere 45–90 secondi e il restart è istantaneo.
   - Neon Night
 
 ### Velocità e difficoltà
-- La velocità aumenta a ogni bioma fino a un tetto.
-- Superato il tetto la velocità resta ferma, ma le curve si fanno più strette e gli ostacoli più fitti.
+- La velocità base è 22 m/s e aumenta di 3 m/s a ogni bioma, fino a 40 m/s.
+- La **combo** rende più veloci: +12% per ogni livello sopra x1 (x5 = +48%). Turbo e pedane boost si moltiplicano sopra. Un urto azzera la combo, quindi il kart rallenta.
+- La velocità cambia in modo graduale: sale di 8 m/s² e scende di 24 m/s².
+- Superato il tetto la velocità del bioma resta ferma, ma le curve si fanno più strette e gli ostacoli più fitti.
+
+### Vite e fine partita
+- Si parte con **3 vite**. Ogni urto con un ostacolo (cono, barriera, kart rivale) toglie una vita, rallenta e azzera la combo.
+- A 0 vite il kart si **schianta**: frena fino a fermarsi in 0,6 s e la partita finisce.
+- **Cadere dalla strada** (fuori dal bordo o in un buco) è sempre game over, con qualunque numero di vite.
+- Il power-up **cuore** ridà una vita (massimo 3).
 
 ### Ostacoli
 | Ostacolo | Effetto |
 |---|---|
-| Coni | Rallentano e azzerano la combo |
+| Coni | Tolgono una vita, rallentano e azzerano la combo |
 | Olio | Allunga il drift in corso |
-| Ghiaccio | Meno aderenza: si gira più piano e, rilasciando, il kart scivola ancora per un attimo nella stessa direzione |
+| Ghiaccio | Meno aderenza: si gira più piano, si derapa di più e, rilasciando, il kart continua a girare ancora un po' |
 | Barriere | Restringono la strada |
 | Buchi | Se ci passi sopra cadi |
-| Kart rivali lenti | Ostacolo mobile da sorpassare. Se lo urti rallenti e azzeri la combo |
+| Kart rivali lenti | Ostacolo mobile da sorpassare. Se lo urti perdi una vita, rallenti e azzeri la combo |
 
 ### Pedane boost
 - Pedane boost: sezioni di strada colorate con frecce animate; passandoci sopra il kart accelera per 1,5 s.
@@ -55,23 +64,24 @@ I power-up si raccolgono passandoci sopra e si attivano da soli.
 | Power-up | Effetto | Durata base |
 |---|---|---|
 | Turbo | Più veloce e invincibile agli ostacoli | 3 s |
-| Scudo | Ti salva da una caduta nel vuoto e ti riporta in strada | Fino al primo uso |
+| Scudo | Assorbe un urto con un ostacolo: niente vita persa, niente rallentamento, la combo resta. Non salva dalle cadute | Fino al primo uso |
 | Magnete | Attira le monete | 6 s |
 | Strada larga | Allarga temporaneamente la strada | 5 s |
 | Slow-mo | Rallenta il tempo | 3 s |
 | x2 Score | Raddoppia lo score | 6 s |
+| Cuore | +1 vita (massimo 3). Più raro degli altri power-up | Subito |
 
 ### Score
 - Si guadagnano punti in quattro modi:
   - **distanza** percorsa;
-  - **drift**: un bonus che cresce con la durata del drift;
+  - **drift**: un bonus che cresce con la durata del drift e con l'angolo di derapata;
   - **linea perfetta**: un bonus per passare vicino al bordo interno della curva;
   - **near-miss**: un bonus per sfiorare un ostacolo senza toccarlo.
 - Tutti i punti vengono moltiplicati dalla **combo**, che va da x1 a x5. La combo sale con drift, linee perfette e near-miss, e si azzera quando si colpisce un ostacolo.
 - Le **monete** si raccolgono sulla strada e servono per cosmetici e potenziamenti.
 
 ### Revive
-- Massimo **1 per partita**. Si paga con 500 monete oppure 5 ⭐.
+- Massimo **1 per partita**. Si paga con 500 monete oppure 5 ⭐. Il revive riporta il kart al centro della strada con 3 vite.
 - La partita con revive viene inviata con `revived: true`. Il backend decide se tenerla fuori dalle classifiche.
 
 ### HUD e feedback

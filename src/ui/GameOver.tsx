@@ -7,6 +7,8 @@ export interface RunSummary {
   coins: number;
   distance: number;
   revived: boolean;
+  /** caduta nel vuoto o schianto (vite finite) */
+  reason: "fall" | "crash";
   /** score > record noto a fine partita */
   newRecord: boolean;
 }
@@ -27,6 +29,7 @@ export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMen
       {/* my-auto invece di justify-center: se il contenuto è più alto dello schermo scorre senza tagliare la parte alta */}
       <div className="my-auto flex w-full max-w-sm flex-col items-center gap-4">
         <h1 className="text-4xl font-black whitespace-nowrap italic text-outline min-[360px]:text-5xl">GAME OVER</h1>
+        <p className="-mt-2 text-lg font-bold text-outline-sm">{run.reason === "crash" ? "Schianto: vite finite" : "Sei caduto nel vuoto"}</p>
 
         <div className="panel w-full p-5 text-center">
           {run.newRecord && (

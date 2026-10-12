@@ -18,6 +18,7 @@ export interface HudSnapshot {
   biome: number;
   /** Secondi di boost (pedane) rimasti. */
   boostTimer: number;
+  lives: number;
 }
 
 const HAPTICS: Partial<Record<GameEvent["type"], Parameters<typeof haptic>[0]>> = {
@@ -27,10 +28,11 @@ const HAPTICS: Partial<Record<GameEvent["type"], Parameters<typeof haptic>[0]>> 
   shieldUsed: "light",
   gameover: "error",
   boost: "light",
+  crash: "heavy",
 };
 
 const copyPose = (k: KartPose, out: KartPose) => {
-  out.x = k.x; out.y = k.y; out.angle = k.angle; out.elevation = k.elevation;
+  out.x = k.x; out.y = k.y; out.angle = k.angle; out.moveAngle = k.moveAngle; out.yawRate = k.yawRate; out.elevation = k.elevation;
   return out;
 };
 
@@ -65,7 +67,7 @@ export class Game {
     this.canvas = opts.canvas;
     this.onEvent = opts.onEvent;
     this.state = createGame(opts.seed, opts.upgrades);
-    this.prevPose = copyPose(this.state.kart, { x: 0, y: 0, angle: 0, elevation: 0 });
+    this.prevPose = copyPose(this.state.kart, { x: 0, y: 0, angle: 0, moveAngle: 0, yawRate: 0, elevation: 0 });
     this.renderer = new GameRenderer(opts.canvas, opts.models, opts.loadout);
   }
 
@@ -111,6 +113,7 @@ export class Game {
       drifting: s.kart.drifting,
       biome: s.biome,
       boostTimer: s.boostTimer,
+      lives: s.lives,
     };
   }
 
@@ -131,11 +134,7 @@ export class Game {
         step(st, this.steer);
         this.acc -= DT;
         if (!wasDrifting && st.kart.drifting) haptic("light");
-        for (const e of st.events) {
-          // lo scudo riporta il kart al centro: niente interpolazione dalla posa fuori strada
-          if (e.type === "shieldUsed") copyPose(st.kart, this.prevPose);
-          this.dispatch(e);
-        }
+        for (const e of st.events) this.dispatch(e);
         if (this.destroyed) return;
         if (this.over()) break;
       }

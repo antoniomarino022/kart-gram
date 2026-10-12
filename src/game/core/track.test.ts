@@ -81,6 +81,13 @@ describe("track", () => {
     }
   });
 
+  it("hearts spawn, rarer than the other power-ups", () => {
+    const t = createTrack(16); extendTrack(t, 40000);
+    const count = (k: string) => t.items.filter((i) => i.kind === "powerup" && i.powerup === k).length;
+    expect(count("heart")).toBeGreaterThan(0);
+    expect(count("heart")).toBeLessThan(count("turbo"));
+  });
+
   it("holes and barriers always leave at least 2.5m of free road", () => {
     const t = createTrack(12); extendTrack(t, 15000);
     for (const it of t.items.filter((i) => i.kind === "hole" || i.kind === "barrier")) {

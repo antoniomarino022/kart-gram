@@ -169,6 +169,16 @@ function shield() {
   add(g, new THREE.IcosahedronGeometry(0.2, 0), mat("shield_core", "#e1f5fe"));
   return g;
 }
+// cuore: due sfere (lobi) e un cubo ruotato di 45° (punta), ~0.8 m, rivolto verso +Z/-Z
+function heart() {
+  const g = new THREE.Group();
+  const r = mat("heart", "#e53950", "#b0102a");
+  const lobe = new THREE.IcosahedronGeometry(0.22, 1);
+  add(g, lobe, r, [-0.17, 0.12, 0]).scale.set(1, 1, 0.75);
+  add(g, lobe, r, [0.17, 0.12, 0]).scale.set(1, 1, 0.75);
+  add(g, box(0.4, 0.4, 0.3), r, [0, -0.1, 0], [0, 0, Math.PI / 4]);
+  return g;
+}
 function magnet() {
   const g = new THREE.Group();
   const r = mat("magnet", "#e53935");
@@ -286,6 +296,7 @@ const MODELS = {
   powerup_wide: wide,
   powerup_slowmo: slowmo,
   powerup_x2: x2,
+  powerup_heart: heart,
 };
 for (let i = 0; i < 3; i++) {
   MODELS[`deco_city_${i + 1}`] = () => city(i);

@@ -1,10 +1,20 @@
 import { CONFIG } from "./config";
-import { pick, range, type Rng } from "./rng";
+import { range, type Rng } from "./rng";
 import { sampleAt, type Track } from "./track";
 
 export type ObstacleKind = "cone" | "oil" | "ice" | "barrier" | "hole" | "rival";
-export type PowerupKind = "turbo" | "shield" | "magnet" | "wide" | "slowmo" | "x2";
-export const POWERUP_KINDS: readonly PowerupKind[] = ["turbo", "shield", "magnet", "wide", "slowmo", "x2"];
+export type PowerupKind = "turbo" | "shield" | "magnet" | "wide" | "slowmo" | "x2" | "heart";
+export const POWERUP_KINDS: readonly PowerupKind[] = ["turbo", "shield", "magnet", "wide", "slowmo", "x2", "heart"];
+/** Peso nello spawn: il cuore (+1 vita) è raro, metà degli altri. */
+const POWERUP_WEIGHT: Record<PowerupKind, number> = { turbo: 2, shield: 2, magnet: 2, wide: 2, slowmo: 2, x2: 2, heart: 1 };
+const POWERUP_TOTAL = POWERUP_KINDS.reduce((a, k) => a + POWERUP_WEIGHT[k], 0);
+
+/** Un solo numero dall'RNG, come `pick`: il resto dello stream non cambia. */
+function pickPowerup(rng: Rng): PowerupKind {
+  let r = rng() * POWERUP_TOTAL;
+  for (const k of POWERUP_KINDS) { if ((r -= POWERUP_WEIGHT[k]) < 0) return k; }
+  return POWERUP_KINDS[0];
+}
 
 export interface Item {
   id: number;
@@ -94,7 +104,7 @@ export function spawnItems(track: Track, startS: number, endS: number, difficult
   if (rng() < CONFIG.spawn.powerupChance) {
     const ps = range(rng, startS, endS);
     const w = sampleAt(track, ps).width;
-    add(track, { kind: "powerup", powerup: pick(rng, POWERUP_KINDS), s: ps, lateral: range(rng, -w / 2 + 1.2, w / 2 - 1.2), radius: 0.6 });
+    add(track, { kind: "powerup", powerup: pickPowerup(rng), s: ps, lateral: range(rng, -w / 2 + 1.2, w / 2 - 1.2), radius: 0.6 });
   }
 }
 

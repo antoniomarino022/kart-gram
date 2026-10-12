@@ -17,7 +17,7 @@ interface Paint { mat: THREE.MeshStandardMaterial; emissive: THREE.Color; intens
 const asArray = (m: THREE.Material | THREE.Material[]) => (Array.isArray(m) ? m : [m]);
 
 /**
- * Kart del giocatore: root (posizione, yaw, pendenza) → pivot (yaw del drift, rollio) → modello + 4 ruote.
+ * Kart del giocatore: root (posizione, yaw del muso, pendenza) → pivot (rollio e schiacciamento in curva) → modello + 4 ruote.
  * Le mesh con materiale "paint" ricevono un clone del materiale con la vernice del loadout.
  */
 export class KartRig {
@@ -25,6 +25,8 @@ export class KartRig {
   readonly pivot = new THREE.Group();
   private body: THREE.Object3D;
   private wheels: THREE.Object3D[] = [];
+  /** Ruote anteriori (z negativa, il kart guarda -Z): sterzano visivamente. */
+  private front: THREE.Object3D[] = [];
   private paints: Paint[] = [];
   private shield: THREE.Mesh;
   private blob: THREE.Mesh;
@@ -43,8 +45,11 @@ export class KartRig {
       for (const z of [-WHEEL_Z, WHEEL_Z]) {
         const w = models.get(loadout.wheelModel);
         w.position.set(x, WHEEL_Y, z);
+        // prima il rotolamento (x), poi la sterzata (y)
+        w.rotation.order = "YXZ";
         this.pivot.add(w);
         this.wheels.push(w);
+        if (z < 0) this.front.push(w);
       }
     }
     this.applyPaint(loadout.paint, envMap);
@@ -127,6 +132,11 @@ export class KartRig {
       this.pivot.add(l, p);
       this.tail.push(new THREE.Vector3(side * lightX, lightY, z + 0.04));
     }
+  }
+
+  /** Angolo visivo delle ruote anteriori (rad, positivo = sinistra). */
+  steerWheels(angle: number) {
+    for (const w of this.front) w.rotation.y = angle;
   }
 
   /** Posizione mondo del fanale posteriore (side -1 sinistro, +1 destro). */

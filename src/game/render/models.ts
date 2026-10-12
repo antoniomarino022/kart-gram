@@ -6,7 +6,7 @@ export const ALL_MODEL_NAMES: string[] = [
   "kart_classic", "kart_bolt", "kart_brick", "kart_rocket",
   "wheel_basic", "wheel_sport", "wheel_offroad", "wheel_retro",
   "rival_kart", "obstacle_cone", "obstacle_barrier", "coin",
-  "powerup_turbo", "powerup_shield", "powerup_magnet", "powerup_wide", "powerup_slowmo", "powerup_x2",
+  "powerup_turbo", "powerup_shield", "powerup_magnet", "powerup_wide", "powerup_slowmo", "powerup_x2", "powerup_heart",
   "deco_city_1", "deco_city_2", "deco_city_3",
   "deco_desert_1", "deco_desert_2", "deco_desert_3",
   "deco_ice_1", "deco_ice_2", "deco_ice_3",
@@ -24,7 +24,7 @@ const baseName = (name: string) => name.replace(/\.glb$/i, "");
 // Forma di ripiego: [larghezza, altezza, profondità, y del centro, colore]
 type FallbackSpec = [number, number, number, number, string];
 const POWERUP_COLORS: Record<string, string> = {
-  turbo: "#ff6d00", shield: "#29b6f6", magnet: "#e53935", wide: "#43a047", slowmo: "#8e24aa", x2: "#fdd835",
+  turbo: "#ff6d00", shield: "#29b6f6", magnet: "#e53935", wide: "#43a047", slowmo: "#8e24aa", x2: "#fdd835", heart: "#e53950",
 };
 
 function fallbackSpec(name: string): FallbackSpec {

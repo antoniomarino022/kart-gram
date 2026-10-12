@@ -116,7 +116,7 @@ export default function GameApp() {
     const newRecord = score > bestRef.current;
     // haptic una sola volta per partita, quando lo score supera il record
     if (run && newRecord && !run.recordFired) { run.recordFired = true; haptic("success"); }
-    setSummary({ score, coins: st.coins, distance: Math.floor(st.kart.s), revived: st.revived, newRecord });
+    setSummary({ score, coins: st.coins, distance: Math.floor(st.kart.s), revived: st.revived, newRecord, reason: st.endReason ?? "fall" });
     setScreen("gameover");
   }, []);
 
@@ -141,6 +141,7 @@ export default function GameApp() {
       onEvent: (e) => {
         if (e.type === "gameover" && g) onGameOver(g);
         else if (e.type === "driftEnd" && e.points >= 1) popups.push("drift", e.points);
+        else if (e.type === "boost") popups.push("boost");
         else if (e.type === "nearMiss" && g) {
           // stesso calcolo della sim: base × combo, raddoppiato con x2
           const st = g.state;

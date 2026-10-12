@@ -46,11 +46,11 @@ export class Streaks {
     scene.add(this.mesh);
   }
 
-  /** `boost`: drift o turbo, scie più intense. `visible`: false in caduta / fuori strada. */
-  update(left: THREE.Vector3, right: THREE.Vector3, time: number, dt: number, boost: boolean, visible: boolean) {
+  /** `level`: intensità delle scie (0.45 normale, 1 drift/turbo, di più col boost). `visible`: false in caduta / fuori strada. */
+  update(left: THREE.Vector3, right: THREE.Vector3, time: number, dt: number, level: number, visible: boolean) {
     this.mesh.visible = visible;
     if (!visible) { this.count = 0; return; }
-    this.bright += ((boost ? 1 : 0.45) - this.bright) * Math.min(1, dt * 6);
+    this.bright += (level - this.bright) * Math.min(1, dt * 6);
 
     const prev = this.head;
     const h0 = this.hist[0];
@@ -88,7 +88,7 @@ export class Streaks {
         const v = (s * N + i) * 2;
         pos[v * 3] = h[k * 3] + nx * w; pos[v * 3 + 1] = h[k * 3 + 1]; pos[v * 3 + 2] = h[k * 3 + 2] + nz * w;
         pos[v * 3 + 3] = h[k * 3] - nx * w; pos[v * 3 + 4] = h[k * 3 + 1]; pos[v * 3 + 5] = h[k * 3 + 2] - nz * w;
-        const a = fade * fade * 0.7 * this.bright;
+        const a = Math.min(1, fade * fade * 0.7 * this.bright);
         for (let e = 0; e < 2; e++) {
           const c = (v + e) * 4;
           col[c] = COLOR.r; col[c + 1] = COLOR.g; col[c + 2] = COLOR.b; col[c + 3] = a;

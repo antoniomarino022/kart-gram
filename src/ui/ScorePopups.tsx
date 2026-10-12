@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-export type PopupKind = "drift" | "nearMiss";
+export type PopupKind = "drift" | "nearMiss" | "boost";
 type Listener = (kind: PopupKind, points: number) => void;
 
 /** Canale dagli eventi del Game ai popup "+N": solo eventi, niente polling. */
 export function createPopupBus() {
   const listeners = new Set<Listener>();
   return {
-    push(kind: PopupKind, points: number) { for (const l of listeners) l(kind, points); },
+    push(kind: PopupKind, points = 0) { for (const l of listeners) l(kind, points); },
     subscribe(l: Listener) { listeners.add(l); return () => { listeners.delete(l); }; },
   };
 }
@@ -42,7 +42,7 @@ export function ScorePopups({ bus }: { bus: PopupBus }) {
         onAnimationEnd={() => setPopup((cur) => (cur?.id === popup.id ? null : cur))}
         className="animate-score-popup absolute text-4xl font-black italic whitespace-nowrap text-white"
       >
-        {popup.kind === "drift" ? `+${n}` : `NEAR MISS +${n}`}
+        {popup.kind === "drift" ? `+${n}` : popup.kind === "nearMiss" ? `NEAR MISS +${n}` : "BOOST!"}
       </div>
     </div>
   );

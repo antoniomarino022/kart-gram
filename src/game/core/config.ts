@@ -7,18 +7,27 @@ export const CONFIG = {
   biomeLength: 1500,
   /** Quanti metri di strada generare davanti al kart. */
   lookAhead: 300,
-  speed: { base: 14, perBiome: 2, max: 26 },
-  /** Raggio di sterzata in drift: turnRate = speed / turnRadius. Deve essere < curve.absMinRadius. */
+  /**
+   * Velocità (m/s): base del bioma (+perBiome a bioma, fino a max), moltiplicata dalla combo (+comboBonus per livello sopra x1).
+   * Il kart si avvicina alla velocità obiettivo con `accel` in salita e `decel` in discesa (m/s²).
+   */
+  speed: { base: 22, perBiome: 3, max: 40, comboBonus: 0.12, accel: 8, decel: 24 },
+  /** Raggio di sterzata in drift: maxTurnRate = speed / turnRadius. Deve essere < curve.absMinRadius. */
   turnRadius: 8,
+  /**
+   * Sensazione di guida (src/game/core/kartPhysics.ts): tempi di risposta della velocità angolare (s) e aderenza
+   * per metro percorso con cui la direzione di moto insegue il muso (ghiaccio e olio scivolano di più).
+   */
+  handling: { yawRiseTime: 0.09, yawFallTime: 0.15, iceYawFallTime: 0.4, gripPerMeter: 0.35, iceGrip: 0.35, oilGrip: 0.45 },
   iceGrip: 0.7,
-  /** Secondi: sul ghiaccio, dopo il rilascio, il kart continua a girare con una sterzata che si spegne in questo tempo. */
-  iceSlide: 0.4,
   kartHalfWidth: 0.5,
   road: { width: 7, narrowWidth: 4.5, wideBonus: 3, startStraight: 60, narrowChance: 0.2, straightChance: 0.4 },
   curve: { minRadius: 12, absMinRadius: 9.5, maxRadius: 24, minAngle: Math.PI / 4, maxAngle: Math.PI / 2, headingLimit: 1.4 },
   spawn: { safeStart: 60, baseSpacing: 30, spacingPerBiome: 3, minSpacing: 12, coinChance: 0.6, powerupChance: 0.15, boostChance: 0.3 },
   fallDuration: 1,
-  invulnAfterRescue: 1,
+  /** Vite: ogni urto con un ostacolo ne toglie una, a 0 il kart si schianta (crashDuration s) e la partita finisce. */
+  lives: 3,
+  crashDuration: 0.6,
   invulnAfterRevive: 2,
   hitSlowdown: { factor: 0.6, duration: 1 },
   turboSpeedFactor: 1.4,
@@ -30,7 +39,7 @@ export const CONFIG = {
   magnetRadius: 6,
   pickupRadius: 1.0,
   nearMissMargin: 1.0,
-  score: { perMeter: 1, driftPerSecond: 20, perfectLinePerSecond: 30, perfectLineEdge: 1.2, nearMiss: 50, minDrift: 0.5 },
+  score: { perMeter: 1, driftPerSecond: 20, perfectLinePerSecond: 30, perfectLineEdge: 1.2, nearMiss: 50, minDrift: 0.5, slipRef: 0.3 },
   comboMax: 5,
   comboStep: 3,
   maxTicks: 60 * 60 * 30,

@@ -1,22 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --background: #5ab4e6;
+  --background: #3f93e0;
   --foreground: #ffffff;
   /* Telegram (fullscreen): area del sistema + area coperta dai bottoni di Telegram */
   --safe-top: calc(max(env(safe-area-inset-top), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
   --safe-bottom: calc(max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+  --ui-radius: 4px;
 }
+
+/*
+ * Colori della UI che seguono il bioma (src/ui/uiPalette.ts li imposta sulla radice dell'app).
+ * Registrati come <color> così il cambio di bioma è una transizione e non uno scatto.
+ * I valori iniziali sono quelli di Sky City.
+ */
+@property --ui-surface { syntax: "<color>"; inherits: true; initial-value: rgba(16, 32, 80, 0.72); }
+@property --ui-scrim { syntax: "<color>"; inherits: true; initial-value: rgba(10, 22, 58, 0.45); }
+@property --ui-primary { syntax: "<color>"; inherits: true; initial-value: #ffd60a; }
+@property --ui-primary-text { syntax: "<color>"; inherits: true; initial-value: #101d45; }
+@property --ui-accent-text { syntax: "<color>"; inherits: true; initial-value: #ffd60a; }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ui-surface: var(--ui-surface);
+  --color-ui-scrim: var(--ui-scrim);
+  --color-ui-primary: var(--ui-primary);
+  --color-ui-primary-text: var(--ui-primary-text);
+  --color-ui-accent: var(--ui-accent-text);
+  --font-ui: var(--font-barlow), "Arial Narrow", system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-ui);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -24,21 +42,27 @@ body {
 }
 
 @layer components {
-  /* testo bianco con contorno scuro, stile arcade */
-  .text-outline {
-    text-shadow:
-      -2px -2px 0 #1b1035, 2px -2px 0 #1b1035, -2px 2px 0 #1b1035, 2px 2px 0 #1b1035,
-      0 3px 0 #1b1035, 0 5px 6px rgb(0 0 0 / 0.35);
-  }
-  .text-outline-sm {
-    text-shadow:
-      -1px -1px 0 #1b1035, 1px -1px 0 #1b1035, -1px 1px 0 #1b1035, 1px 1px 0 #1b1035, 0 2px 0 #1b1035;
+  /* radice della UI: font condensato maiuscolo e transizione dei colori del bioma */
+  .ui-root {
+    font-family: var(--font-ui);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    transition: --ui-surface 0.8s ease, --ui-scrim 0.8s ease, --ui-primary 0.8s ease, --ui-primary-text 0.8s ease, --ui-accent-text 0.8s ease;
   }
 
   .pt-safe { padding-top: max(0.75rem, var(--safe-top)); }
   .pb-safe { padding-bottom: max(0.75rem, var(--safe-bottom)); }
 
-  /* bottone "a pastiglia" con ombra in basso che si schiaccia alla pressione */
+  /* superfici piatte: rettangoli scuri traslucidi, raggio piccolo, niente blur né bordi */
+  .box {
+    background: var(--ui-surface);
+    border-radius: var(--ui-radius);
+    color: #fff;
+  }
+  .scrim { background: var(--ui-scrim); }
+
+  /* bottone piatto: tinta unita, niente ombre né bordi; premuto = un po' più scuro e più piccolo */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -46,58 +70,89 @@ body {
     gap: 0.4rem;
     min-height: 44px;
     padding: 0.5rem 1rem;
-    border-radius: 1rem;
-    border: 2px solid #1b1035;
-    font-weight: 900;
-    font-style: italic;
+    border-radius: var(--ui-radius);
+    font-weight: 800;
     letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.1;
     color: #fff;
-    background: var(--btn-bg, #3a86ff);
-    box-shadow: 0 5px 0 var(--btn-shade, #1d4fa8), 0 7px 10px rgb(0 0 0 / 0.25);
-    transform: translateY(0);
-    transition: transform 80ms, box-shadow 80ms, filter 80ms;
+    background: var(--ui-surface);
+    transition: transform 80ms, filter 80ms;
     touch-action: manipulation;
     cursor: pointer;
   }
-  .btn:active:not(:disabled) {
-    transform: translateY(4px);
-    box-shadow: 0 1px 0 var(--btn-shade, #1d4fa8), 0 2px 4px rgb(0 0 0 / 0.25);
-  }
-  .btn:disabled { filter: grayscale(0.85) brightness(0.8); cursor: not-allowed; }
-  .btn-green { --btn-bg: #2dc653; --btn-shade: #178a35; }
-  .btn-yellow { --btn-bg: #ffc61a; --btn-shade: #c48a00; color: #1b1035; }
-  .btn-orange { --btn-bg: #ff7a1a; --btn-shade: #b84c00; }
-  .btn-purple { --btn-bg: #8338ec; --btn-shade: #5317a8; }
-  .btn-gray { --btn-bg: #5d6b85; --btn-shade: #364057; }
-  .btn-white { --btn-bg: #ffffff; --btn-shade: #a9b4c8; color: #1b1035; }
+  .btn:active:not(:disabled) { transform: scale(0.97); filter: brightness(0.86); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  /* azione principale: accento del bioma */
+  .btn-primary { background: var(--ui-primary); color: var(--ui-primary-text); }
+  /* secondario: superficie scura traslucida */
+  .btn-secondary { background: var(--ui-surface); color: #fff; }
+  /* acquisti in Stelle Telegram: viola fisso, riconoscibile in ogni bioma */
+  .btn-stars { background: #6c3cf0; color: #fff; }
+  /* bottone scuro pieno, per stare sopra superfici chiare/accento */
+  .btn-dark { background: var(--ui-primary-text); color: #fff; }
 
-  .panel {
-    background: rgb(0 0 0 / 0.35);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 2px solid rgb(255 255 255 / 0.15);
-    border-radius: 1.25rem;
+  /* bottone icona quadrato (barra in alto) */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: var(--ui-radius);
+    background: var(--ui-surface);
+    color: #fff;
+    transition: transform 80ms, filter 80ms;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  .icon-btn:active { transform: scale(0.94); filter: brightness(0.86); }
+  .icon-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* logo: condensato pesantissimo, inclinato come nel riferimento */
+  .logo {
+    font-weight: 900;
+    line-height: 0.82;
+    letter-spacing: -0.01em;
+    transform: skewX(-9deg);
+    color: #fff;
   }
 }
 
 @keyframes pop-in {
   0% { transform: scale(0.6); opacity: 0; }
-  70% { transform: scale(1.08); opacity: 1; }
+  70% { transform: scale(1.06); opacity: 1; }
   100% { transform: scale(1); }
 }
-.animate-pop { animation: pop-in 260ms ease-out both; }
+.animate-pop { animation: pop-in 240ms ease-out both; }
 
-/* punti "+N" sopra il kart: testo bianco piatto che sale e svanisce */
+/* popup al centro ("+N", NEAR MISS, BOOST!): box scuro che sale e svanisce */
 @keyframes score-popup {
   0% { transform: translateY(0.5rem) scale(0.7); opacity: 0; }
   15% { transform: translateY(0) scale(1.05); opacity: 1; }
   25% { transform: translateY(-0.25rem) scale(1); opacity: 1; }
-  100% { transform: translateY(-4.5rem) scale(1); opacity: 0; }
+  80% { opacity: 1; }
+  100% { transform: translateY(-3.5rem) scale(1); opacity: 0; }
 }
 .animate-score-popup { animation: score-popup 1100ms ease-out both; }
+
+/* cuore che cambia stato (vita persa o recuperata) */
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+.animate-heart { animation: heart-pop 320ms ease-out; }
 
 @keyframes toast-in {
   from { transform: translate(-50%, 1rem); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 .animate-toast { animation: toast-in 180ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop, .animate-heart, .animate-toast { animation: none; }
+  .ui-root { transition: none; }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { getBackend, type CatalogItem, type Profile, type RevivePay } from "@/backend";
 import { payRevive } from "@/backend/purchase";
 import { Game } from "@/game/Game";
@@ -8,7 +8,7 @@ import { CONFIG } from "@/game/core/config";
 import { finalScore, NO_UPGRADES, type GameEvent, type UpgradeLevels } from "@/game/core/sim";
 import { ALL_MODEL_NAMES, type Loadout } from "@/game/render/GameRenderer";
 import { loadModels, type ModelLibrary } from "@/game/render/models";
-import { getTelegramUser, haptic, initTelegram } from "@/telegram/webapp";
+import { getTelegramUser, initTelegram } from "@/telegram/webapp";
 import { errorText } from "./errors";
 import { GameOver, type RunSummary } from "./GameOver";
 import { Garage } from "./Garage";
@@ -20,7 +20,9 @@ import { buildLoadout, loadoutKey } from "./loadout";
 import { Menu } from "./Menu";
 import { Shop } from "./Shop";
 import { createProfileTracker } from "./profileSync";
+import { uiHaptic } from "./settings";
 import { Toast, useToast } from "./Toast";
+import { uiPalette, uiVars } from "./uiPalette";
 
 type ScreenId = "menu" | "playing" | "gameover" | "garage" | "shop" | "leaderboard";
 
@@ -55,6 +57,8 @@ export default function GameApp() {
   const [unsaved, setUnsaved] = useState(false);
   const { toast, show, hide } = useToast();
   const [popups] = useState(createPopupBus);
+  /** Bioma della partita in corso (colori della UI); i menu usano sempre il bioma 0. */
+  const [runBiome, setRunBiome] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /** Game montato sul canvas (partita o scena di sfondo) e chiave del suo loadout. */
@@ -115,7 +119,7 @@ export default function GameApp() {
     const run = runRef.current;
     const newRecord = score > bestRef.current;
     // haptic una sola volta per partita, quando lo score supera il record
-    if (run && newRecord && !run.recordFired) { run.recordFired = true; haptic("success"); }
+    if (run && newRecord && !run.recordFired) { run.recordFired = true; uiHaptic("success"); }
     setSummary({ score, coins: st.coins, distance: Math.floor(st.kart.s), revived: st.revived, newRecord });
     setScreen("gameover");
   }, []);
@@ -145,7 +149,7 @@ export default function GameApp() {
           // stesso calcolo della sim: base × combo, raddoppiato con x2
           const st = g.state;
           popups.push("nearMiss", CONFIG.score.nearMiss * st.combo * (st.powerups.x2 > 0 ? 2 : 1));
-        }
+        } else if (e.type === "boost") popups.push("boost", 0);
       },
       demo: false,
     });
@@ -154,6 +158,7 @@ export default function GameApp() {
     setGame(g);
     setUnsaved(unsaved);
     setSummary(null);
+    setRunBiome(0);
     setScreen("playing");
   }, [backend, data, starting, mountGame, onGameOver, popups]);
 
@@ -201,21 +206,30 @@ export default function GameApp() {
 
   const tgName = getTelegramUser()?.first_name;
 
+  // colori della UI dal bioma: cambiano solo quando cambia l'indice (la transizione è nel CSS)
+  const uiBiome = screen === "playing" || screen === "gameover" ? runBiome : 0;
+  const rootStyle = useMemo(() => uiVars(uiPalette(uiBiome)) as CSSProperties, [uiBiome]);
+
   return (
-    <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-[#5ab4e6] to-[#8fcff0]">
+    <div className="ui-root absolute inset-0 overflow-hidden bg-[#3f93e0]" style={rootStyle}>
       <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full touch-none" />
 
       {boot === "loading" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          <h1 className="-rotate-3 text-5xl font-black italic text-outline">KART-GRAM</h1>
+          <h1 className="logo text-center text-8xl">
+            <span className="block">KART</span>
+            <span className="block">GRAM</span>
+          </h1>
           <Spinner />
         </div>
       )}
       {boot === "error" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
-          <p className="text-2xl font-black italic text-outline">Impossibile caricare il gioco</p>
-          <p className="font-bold text-outline-sm">Controlla la connessione e riprova.</p>
-          <button type="button" className="btn btn-green w-48 text-2xl" onClick={() => { setBoot("loading"); load(); }}>
+          <div className="box px-4 py-3">
+            <p className="text-3xl font-black">Impossibile caricare il gioco</p>
+            <p className="mt-1 text-lg">Controlla la connessione e riprova</p>
+          </div>
+          <button type="button" className="btn btn-primary h-14 w-full max-w-[290px] text-3xl font-black" onClick={() => { setBoot("loading"); load(); }}>
             Riprova
           </button>
         </div>
@@ -228,7 +242,7 @@ export default function GameApp() {
           )}
           {screen === "playing" && game && <ScorePopups bus={popups} />}
           {screen === "playing" && game && (
-            <Hud game={game} bestScore={profile.bestScore} upgrades={profile.upgrades} onExit={quit} />
+            <Hud game={game} bestScore={profile.bestScore} upgrades={profile.upgrades} onExit={quit} onBiome={setRunBiome} />
           )}
           {screen === "gameover" && summary && (
             <GameOver

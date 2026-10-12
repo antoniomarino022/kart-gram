@@ -1,5 +1,6 @@
 import { REVIVE_PRICE } from "@/backend/catalog";
 import type { Profile, RevivePay } from "@/backend/types";
+import { CoinIcon } from "./kit";
 import { fmt } from "./loadout";
 
 export interface RunSummary {
@@ -16,56 +17,69 @@ interface Props {
   profile: Profile;
   unsaved: boolean;
   busy: boolean;
+  /**
+   * Motivo della fine partita (es. "Sei caduto", "Kart distrutto"); vuoto = riga nascosta.
+   * TODO(merge): passarlo da GameApp quando il gioco espone la causa (caduta / vite finite).
+   */
+  reason?: string;
   onRevive: (pay: RevivePay) => void;
   onRetry: () => void;
   onMenu: () => void;
 }
 
-export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMenu }: Props) {
+export function GameOver({ run, profile, unsaved, busy, reason = "", onRevive, onRetry, onMenu }: Props) {
   return (
-    <div className="pt-safe pb-safe absolute inset-0 z-10 flex flex-col items-center overflow-y-auto bg-[#1b1035]/55 px-5 backdrop-blur-[2px]">
+    <div className="scrim pt-safe pb-safe absolute inset-0 z-10 flex flex-col items-center overflow-y-auto px-4">
       {/* my-auto invece di justify-center: se il contenuto è più alto dello schermo scorre senza tagliare la parte alta */}
-      <div className="my-auto flex w-full max-w-sm flex-col items-center gap-4">
-        <h1 className="text-4xl font-black whitespace-nowrap italic text-outline min-[360px]:text-5xl">GAME OVER</h1>
+      <div className="my-auto flex w-full max-w-[320px] flex-col items-center gap-2">
+        <h1 className="logo text-center text-[4.5rem] min-[360px]:text-[5.5rem]">
+          <span className="block">GAME</span>
+          <span className="block">OVER</span>
+        </h1>
+        {reason && <div className="box mt-1 px-3 py-1 text-xl font-extrabold text-ui-accent">{reason}</div>}
 
-        <div className="panel w-full p-5 text-center">
+        <div className="box mt-2 w-full px-4 py-3 text-center">
           {run.newRecord && (
-            <div className="animate-pop mb-1 text-2xl font-black italic text-[#ffd23f] text-outline">NUOVO RECORD!</div>
+            <div className="animate-pop mb-1 inline-block rounded-[var(--ui-radius)] bg-ui-primary px-2 py-0.5 text-xl font-black text-ui-primary-text">
+              Nuovo record!
+            </div>
           )}
-          <div className="text-sm font-bold tracking-widest text-white/80">SCORE</div>
-          <div className="text-6xl leading-none font-black italic tabular-nums text-outline">{fmt(run.score)}</div>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-lg font-black italic">
-            <div className="rounded-xl bg-white/10 py-2">🪙 +{fmt(run.coins)}</div>
-            <div className="rounded-xl bg-white/10 py-2">📏 {fmt(run.distance)} m</div>
+          <div className="text-base font-extrabold text-ui-accent">Score</div>
+          <div className="text-7xl leading-none font-black tabular-nums">{fmt(run.score)}</div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xl font-extrabold">
+            <div className="flex items-center justify-center gap-1.5 rounded-[var(--ui-radius)] bg-white/10 py-1.5">
+              <CoinIcon size={18} />+{fmt(run.coins)}
+            </div>
+            <div className="rounded-[var(--ui-radius)] bg-white/10 py-1.5">{fmt(run.distance)} m</div>
           </div>
-          {unsaved && <p className="mt-3 text-sm font-bold text-[#ffb4a8]">Partita non salvata (offline)</p>}
+          {unsaved && <p className="mt-2 text-sm text-ui-accent">Partita non salvata (offline)</p>}
         </div>
 
         {/* una partita offline (senza runId del backend) non può essere rianimata */}
         {!run.revived && !unsaved && (
-          <div className="panel flex w-full flex-col gap-3 p-4">
-            <div className="text-center text-lg font-black italic text-outline-sm">Continua la corsa?</div>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3">
-              <button type="button" disabled={busy || profile.coins < REVIVE_PRICE.coins} onClick={() => onRevive("coins")} className="btn btn-yellow px-2 text-sm whitespace-nowrap">
-                Continua · {REVIVE_PRICE.coins} 🪙
+          <div className="box flex w-full flex-col gap-2 p-3">
+            <div className="text-center text-xl font-extrabold">Continua la corsa?</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" disabled={busy || profile.coins < REVIVE_PRICE.coins} onClick={() => onRevive("coins")} className="btn btn-primary px-1 text-lg whitespace-nowrap">
+                <CoinIcon size={18} />{fmt(REVIVE_PRICE.coins)}
               </button>
-              <button type="button" disabled={busy} onClick={() => onRevive("stars")} className="btn btn-purple px-2 text-sm whitespace-nowrap">
-                Continua · {REVIVE_PRICE.stars} ⭐
+              <button type="button" disabled={busy} onClick={() => onRevive("stars")} className="btn btn-stars px-1 text-lg whitespace-nowrap">
+                ⭐ {REVIVE_PRICE.stars}
               </button>
             </div>
             {profile.revives > 0 && (
-              <button type="button" disabled={busy} onClick={() => onRevive("owned")} className="btn btn-orange">
+              <button type="button" disabled={busy} onClick={() => onRevive("owned")} className="btn btn-primary text-lg">
                 Usa revive ({profile.revives})
               </button>
             )}
           </div>
         )}
 
-        <div className="grid w-full grid-cols-2 gap-3">
-          <button type="button" disabled={busy} onClick={onRetry} className="btn btn-green h-16 text-xl whitespace-nowrap min-[360px]:text-2xl">
-            ↻ Riprova
+        <div className="mt-1 flex w-full flex-col gap-2">
+          <button type="button" disabled={busy} onClick={onRetry} className="btn btn-primary h-14 text-3xl font-black">
+            Riprova
           </button>
-          <button type="button" disabled={busy} onClick={onMenu} className="btn btn-white h-16 text-xl whitespace-nowrap min-[360px]:text-2xl">
+          <button type="button" disabled={busy} onClick={onMenu} className="btn btn-secondary h-[52px] text-2xl">
             Menu
           </button>
         </div>

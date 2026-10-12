@@ -37,7 +37,7 @@ kart-gram/
 │   ├── ui/                # Grafiche della UI: bottoni, icone, sfondi, logo
 │   └── fonts/             # Font custom (woff2)
 ├── scripts/
-│   └── generate-models    # Genera i modelli segnaposto (box, cilindri) in public/models/
+│   └── generate-models.mjs # Genera i modelli segnaposto (box, cilindri) in public/models/
 ├── docs/
 │   └── superpowers/specs/ # Documenti di design
 └── src/
@@ -78,6 +78,39 @@ All'inizio i file sono segnaposto; l'elenco completo, con nome, dimensione e dov
 
 ## Modelli 3D
 
-I modelli in `public/models/` sono segnaposto generati da `scripts/generate-models`.
+I modelli in `public/models/` sono segnaposto generati da `scripts/generate-models.mjs` (`npm run models`).
 Per sostituirne uno basta salvare un nuovo `.glb` **con lo stesso nome**.
 Convenzioni: 1 unità = 1 metro, asse Y verso l'alto, il kart guarda verso **-Z**, origine alla base del modello.
+
+Per rigenerare i segnaposto: `npm run models`.
+
+- **I kart non hanno le ruote**: il gioco le aggancia dal modello `wheel_*` scelto, nei punti `(±0.55, 0.22, ±0.6)` (x, y, z).
+- **Le mesh da ricolorare** (vernice del kart) devono usare un materiale chiamato esattamente `paint`.
+- Ruote: cilindro con asse X, centrate nell'origine. Power-up e moneta: centrati nell'origine (il gioco li solleva e li fa ruotare). Kart, ostacoli e decorazioni: origine alla base.
+
+| File | Cosa è | Dimensione circa |
+|---|---|---|
+| `kart_classic` | Kart base, corpo basso a scatola con sedile e volante | 1.0 × 0.35 × 1.6 m |
+| `kart_bolt` | Kart a cuneo con alettone posteriore | 1.1 × 0.8 × 1.7 m |
+| `kart_brick` | Kart alto e squadrato | 1.05 × 0.9 × 1.5 m |
+| `kart_rocket` | Kart lungo con propulsori dietro | 0.8 × 0.6 × 2 m |
+| `wheel_basic` | Ruota standard | raggio 0.22, larghezza 0.18 m |
+| `wheel_sport` | Ruota sottile con cerchio colorato | raggio 0.22, larghezza 0.16 m |
+| `wheel_offroad` | Ruota larga e tassellata | raggio 0.26, larghezza 0.24 m |
+| `wheel_retro` | Ruota con fascia bianca | raggio 0.22, larghezza 0.18 m |
+| `rival_kart` | Kart avversario grigio, con le ruote incluse (niente `paint`) | 1.1 × 0.7 × 1.7 m |
+| `obstacle_cone` | Cono arancione con striscia bianca | raggio 0.35, altezza 0.7 m |
+| `obstacle_barrier` | Barriera a strisce rosse e bianche | 3.0 × 0.9 × 0.4 m |
+| `coin` | Moneta d'oro in piedi, rivolta verso Z | raggio 0.35, spessore 0.08 m |
+| `powerup_turbo` | Doppio chevron arancione | 0.8 m |
+| `powerup_shield` | Sfera schiacciata azzurra | 0.8 m |
+| `powerup_magnet` | Calamita a U rossa | 0.8 m |
+| `powerup_wide` | Piastra larga verde con frecce | 0.9 m |
+| `powerup_slowmo` | Clessidra viola | 0.8 m |
+| `powerup_x2` | Due cubi gialli | 0.8 m |
+| `deco_city_1..3` | Torri blu | 9–15 m |
+| `deco_desert_1..3` | Piramide, arco, cactus | 7–9 m |
+| `deco_ice_1..3` | Cristallo, cubi di neve, gruppo di cristalli | 5–7 m |
+| `deco_neon_1..3` | Anelli, torre e cubo al neon magenta / ciano | 8–10 m |
+
+Olio, ghiaccio e buche non sono modelli: il gioco li disegna come decal piatti.

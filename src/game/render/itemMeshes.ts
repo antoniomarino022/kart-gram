@@ -10,7 +10,8 @@ const VIEW_AHEAD = 200;
 const DECAL_LIFT = 0.02;
 const HALF_PI = Math.PI / 2;
 
-interface Entry { obj: THREE.Object3D; seen: number; ownGeometry?: THREE.BufferGeometry }
+/** `pool`: chiave della free list in cui rimettere l'oggetto alla rimozione (assente per il ghiaccio, che ha geometria propria). */
+interface Entry { obj: THREE.Object3D; seen: number; pool?: string; ownGeometry?: THREE.BufferGeometry }
 
 const MODEL_OF: Partial<Record<Item["kind"], string>> = {
   cone: "obstacle_cone", barrier: "obstacle_barrier", rival: "rival_kart", coin: "coin",
@@ -28,6 +29,8 @@ export class ItemMeshes {
   private entries = new Map<number, Entry>();
   private frame = 0;
   private scratch = {} as Item;
+  /** Oggetti rimossi, riusati per nome modello / tipo di decal: meno allocazioni e GC su Android. */
+  private free = new Map<string, THREE.Object3D[]>();
 
   private circle = new THREE.CircleGeometry(1, 28).rotateX(-HALF_PI);
   private ring = new THREE.RingGeometry(1, 1.15, 28).rotateX(-HALF_PI);
@@ -68,22 +71,23 @@ export class ItemMeshes {
   }
 
   private create(track: Track, it: Item): Entry {
-    if (it.kind === "oil" || it.kind === "hole") {
-      const g = new THREE.Group();
-      g.rotation.order = "YXZ";
-      if (it.kind === "oil") g.add(new THREE.Mesh(this.circle, this.oilMat));
-      else g.add(new THREE.Mesh(this.circle, this.holeMat), new THREE.Mesh(this.ring, this.rimMat));
-      g.scale.set(it.radius, 1, it.radius);
-      return { obj: g, seen: 0 };
-    }
     if (it.kind === "ice") {
       const geo = iceGeometry(track, it);
       return { obj: new THREE.Mesh(geo, this.iceMat), seen: 0, ownGeometry: geo };
     }
-    const name = it.kind === "powerup" ? `powerup_${it.powerup}` : MODEL_OF[it.kind]!;
-    const obj = this.models.get(name);
+    const pool = it.kind === "oil" || it.kind === "hole" ? it.kind : it.kind === "powerup" ? `powerup_${it.powerup}` : MODEL_OF[it.kind]!;
+    const obj = this.free.get(pool)?.pop() ?? this.build(pool);
+    if (it.kind === "oil" || it.kind === "hole") obj.scale.set(it.radius, 1, it.radius);
+    return { obj, seen: 0, pool };
+  }
+
+  private build(pool: string): THREE.Object3D {
+    let obj: THREE.Object3D;
+    if (pool === "oil") obj = new THREE.Group().add(new THREE.Mesh(this.circle, this.oilMat));
+    else if (pool === "hole") obj = new THREE.Group().add(new THREE.Mesh(this.circle, this.holeMat), new THREE.Mesh(this.ring, this.rimMat));
+    else obj = this.models.get(pool);
     obj.rotation.order = "YXZ";
-    return { obj, seen: 0 };
+    return obj;
   }
 
   private place(track: Track, it: Item, lag: number, obj: THREE.Object3D, time: number) {
@@ -118,11 +122,17 @@ export class ItemMeshes {
   private remove(id: number, e: Entry) {
     this.scene.remove(e.obj);
     e.ownGeometry?.dispose();
+    if (e.pool) {
+      let list = this.free.get(e.pool);
+      if (!list) this.free.set(e.pool, (list = []));
+      list.push(e.obj);
+    }
     this.entries.delete(id);
   }
 
   dispose() {
     for (const [id, e] of this.entries) this.remove(id, e);
+    this.free.clear();
     this.circle.dispose();
     this.ring.dispose();
     for (const m of [this.oilMat, this.holeMat, this.rimMat, this.iceMat]) m.dispose();

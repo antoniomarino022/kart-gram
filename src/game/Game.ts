@@ -19,7 +19,6 @@ export interface HudSnapshot {
 }
 
 const HAPTICS: Partial<Record<GameEvent["type"], Parameters<typeof haptic>[0]>> = {
-  driftEnd: "light",
   hit: "medium",
   fall: "heavy",
   powerup: "light",
@@ -32,7 +31,13 @@ const copyPose = (k: KartPose, out: KartPose) => {
   return out;
 };
 
-/** Loop di gioco fuori da React: timestep fisso, registrazione input per il replay, eventi e haptics. */
+/**
+ * Loop di gioco fuori da React: timestep fisso, registrazione input per il replay, eventi e haptics.
+ *
+ * Il canvas va riusato tra una partita e l'altra (un solo contesto WebGL): la UI tiene montato un unico
+ * `<canvas>` e crea un nuovo Game sullo stesso elemento dopo `destroy()` del precedente. Creare canvas nuovi
+ * a ogni partita accumula contesti WebGL, che i browser mobili limitano.
+ */
 export class Game {
   readonly state: GameState;
   private recorder = new InputRecorder();
@@ -49,6 +54,8 @@ export class Game {
   private raf = 0;
   private started = false;
   private destroyed = false;
+  /** In pausa si disegna solo quando serve (entrata in pausa, resize). */
+  private needsFrame = true;
   private cleanups: (() => void)[] = [];
 
   constructor(opts: { canvas: HTMLCanvasElement; models: ModelLibrary; loadout: Loadout; seed: number; upgrades: UpgradeLevels; onEvent: (e: GameEvent) => void }) {
@@ -71,7 +78,7 @@ export class Game {
     this.cleanups.push(attachInput(this.canvas, (p) => { this.pressed = p; }));
     this.cleanups.push(onVisibilityChange((visible) => { if (!visible) this.pause(); }));
     if (typeof ResizeObserver !== "undefined") {
-      const ro = new ResizeObserver(() => this.renderer.resize());
+      const ro = new ResizeObserver(() => { this.renderer.resize(); this.needsFrame = true; });
       ro.observe(this.canvas);
       this.cleanups.push(() => ro.disconnect());
     }
@@ -79,7 +86,7 @@ export class Game {
     this.raf = requestAnimationFrame(this.frame);
   }
 
-  pause() { this._paused = true; }
+  pause() { this._paused = true; this.needsFrame = true; }
   resume() { this._paused = false; }
 
   /** wraps sim revive */
@@ -116,9 +123,15 @@ export class Game {
       while (this.acc >= DT) {
         this.recorder.record(st.tick, this.pressed);
         copyPose(st.kart, this.prevPose);
+        const wasDrifting = st.kart.drifting;
         step(st, this.pressed);
         this.acc -= DT;
-        for (const e of st.events) this.dispatch(e);
+        if (!wasDrifting && st.kart.drifting) haptic("light");
+        for (const e of st.events) {
+          // lo scudo riporta il kart al centro: niente interpolazione dalla posa fuori strada
+          if (e.type === "shieldUsed") copyPose(st.kart, this.prevPose);
+          this.dispatch(e);
+        }
         if (this.destroyed) return;
         if (this.over()) break;
       }
@@ -127,7 +140,9 @@ export class Game {
         copyPose(st.kart, this.prevPose);
       }
     }
-    // in pausa il frame resta fermo (dt 0); a partita finita la scena continua ad animarsi
+    // in pausa si salta il render (salvo un frame dopo pausa/resize, con dt 0); a partita finita la scena continua ad animarsi
+    if (this._paused && !this.needsFrame) return;
+    this.needsFrame = false;
     this.renderer.render(st, this.prevPose, this.acc / DT, this._paused ? 0 : frameDt);
   };
 

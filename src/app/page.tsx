@@ -1,7 +1,9 @@
+import ClientGame from "@/ui/ClientGame";
+
 export default function Home() {
   return (
-    <main className="flex h-dvh items-center justify-center">
-      <h1 className="text-3xl font-bold">kart-gram</h1>
+    <main className="relative h-dvh w-full overflow-hidden">
+      <ClientGame />
     </main>
   );
 }

@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className="h-full antialiased">
+    <html lang="it" className="h-full antialiased" suppressHydrationWarning>
       <body className="h-full overflow-hidden">
         {children}
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />

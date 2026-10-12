@@ -3,6 +3,9 @@
 :root {
   --background: #5ab4e6;
   --foreground: #ffffff;
+  /* Telegram (fullscreen): area del sistema + area coperta dai bottoni di Telegram */
+  --safe-top: calc(max(env(safe-area-inset-top), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+  --safe-bottom: calc(max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
 }
 
 @theme inline {
@@ -17,4 +20,75 @@ body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
+
+@layer components {
+  /* testo bianco con contorno scuro, stile arcade */
+  .text-outline {
+    text-shadow:
+      -2px -2px 0 #1b1035, 2px -2px 0 #1b1035, -2px 2px 0 #1b1035, 2px 2px 0 #1b1035,
+      0 3px 0 #1b1035, 0 5px 6px rgb(0 0 0 / 0.35);
+  }
+  .text-outline-sm {
+    text-shadow:
+      -1px -1px 0 #1b1035, 1px -1px 0 #1b1035, -1px 1px 0 #1b1035, 1px 1px 0 #1b1035, 0 2px 0 #1b1035;
+  }
+
+  .pt-safe { padding-top: max(0.75rem, var(--safe-top)); }
+  .pb-safe { padding-bottom: max(0.75rem, var(--safe-bottom)); }
+
+  /* bottone "a pastiglia" con ombra in basso che si schiaccia alla pressione */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    border: 2px solid #1b1035;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--btn-bg, #3a86ff);
+    box-shadow: 0 5px 0 var(--btn-shade, #1d4fa8), 0 7px 10px rgb(0 0 0 / 0.25);
+    transform: translateY(0);
+    transition: transform 80ms, box-shadow 80ms, filter 80ms;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--btn-shade, #1d4fa8), 0 2px 4px rgb(0 0 0 / 0.25);
+  }
+  .btn:disabled { filter: grayscale(0.85) brightness(0.8); cursor: not-allowed; }
+  .btn-green { --btn-bg: #2dc653; --btn-shade: #178a35; }
+  .btn-yellow { --btn-bg: #ffc61a; --btn-shade: #c48a00; color: #1b1035; }
+  .btn-orange { --btn-bg: #ff7a1a; --btn-shade: #b84c00; }
+  .btn-purple { --btn-bg: #8338ec; --btn-shade: #5317a8; }
+  .btn-gray { --btn-bg: #5d6b85; --btn-shade: #364057; }
+  .btn-white { --btn-bg: #ffffff; --btn-shade: #a9b4c8; color: #1b1035; }
+
+  .panel {
+    background: rgb(0 0 0 / 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 2px solid rgb(255 255 255 / 0.15);
+    border-radius: 1.25rem;
+  }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop { animation: pop-in 260ms ease-out both; }
+
+@keyframes toast-in {
+  from { transform: translate(-50%, 1rem); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+.animate-toast { animation: toast-in 180ms ease-out both; }

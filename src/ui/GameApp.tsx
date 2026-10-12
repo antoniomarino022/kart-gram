@@ -1,0 +1,228 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getBackend, type CatalogItem, type Profile, type RevivePay } from "@/backend";
+import { payRevive } from "@/backend/purchase";
+import { Game } from "@/game/Game";
+import { finalScore, NO_UPGRADES, type GameEvent, type UpgradeLevels } from "@/game/core/sim";
+import { ALL_MODEL_NAMES, type Loadout } from "@/game/render/GameRenderer";
+import { loadModels, type ModelLibrary } from "@/game/render/models";
+import { getTelegramUser, haptic, initTelegram } from "@/telegram/webapp";
+import { errorText } from "./errors";
+import { GameOver, type RunSummary } from "./GameOver";
+import { Garage } from "./Garage";
+import { Hud } from "./Hud";
+import { Spinner } from "./kit";
+import { Leaderboard } from "./Leaderboard";
+import { buildLoadout, loadoutKey } from "./loadout";
+import { Menu } from "./Menu";
+import { Shop } from "./Shop";
+import { Toast, useToast } from "./Toast";
+
+type ScreenId = "menu" | "playing" | "gameover" | "garage" | "shop" | "leaderboard";
+
+/** Seed fisso della scena di sfondo nei menu. */
+const DEMO_SEED = 20261012;
+
+interface Run {
+  runId: string;
+  /** startRun fallito: si gioca con un seed locale e la partita non viene inviata */
+  unsaved: boolean;
+  /** haptic "nuovo record" già dato in questa partita */
+  recordFired: boolean;
+}
+
+interface Ready { profile: Profile; catalog: CatalogItem[]; models: ModelLibrary }
+
+export default function GameApp() {
+  const [backend] = useState(getBackend);
+  const [boot, setBoot] = useState<"loading" | "error" | "ready">("loading");
+  const [data, setData] = useState<Ready | null>(null);
+  const [screen, setScreen] = useState<ScreenId>("menu");
+  const [game, setGame] = useState<Game | null>(null);
+  const [summary, setSummary] = useState<RunSummary | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [unsaved, setUnsaved] = useState(false);
+  const { toast, show, hide } = useToast();
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  /** Game montato sul canvas (partita o scena di sfondo) e chiave del suo loadout. */
+  const mounted = useRef<{ game: Game; key: string } | null>(null);
+  const runRef = useRef<Run | null>(null);
+  /** Record più recente: quello del profilo o lo score appena inviato (finishRun può non aver ancora risposto). */
+  const bestRef = useRef(0);
+
+  const profile = data?.profile;
+  useEffect(() => { bestRef.current = Math.max(bestRef.current, profile?.bestScore ?? 0); }, [profile]);
+  const setProfile = useCallback((p: Profile) => setData((d) => (d ? { ...d, profile: p } : d)), []);
+
+  const load = useCallback(() => {
+    initTelegram();
+    Promise.all([backend.getProfile(), backend.getCatalog(), loadModels(ALL_MODEL_NAMES)]).then(
+      ([profile, catalog, models]) => { setData({ profile, catalog, models }); setBoot("ready"); },
+      (err) => { console.error("[app] caricamento fallito", err); setBoot("error"); },
+    );
+  }, [backend]);
+
+  useEffect(load, [load]);
+
+  // un solo canvas per tutta la vita dell'app: alla chiusura si distrugge l'ultimo Game
+  useEffect(() => () => { mounted.current?.game.destroy(); mounted.current = null; }, []);
+
+  /** Distrugge il Game corrente e ne crea uno nuovo sullo stesso canvas. */
+  const mountGame = useCallback((opts: { loadout: Loadout; seed: number; upgrades: UpgradeLevels; onEvent: (e: GameEvent) => void; demo: boolean }) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data) return null;
+    mounted.current?.game.destroy();
+    const g = new Game({ canvas, models: data.models, loadout: opts.loadout, seed: opts.seed, upgrades: opts.upgrades, onEvent: opts.onEvent });
+    mounted.current = { game: g, key: loadoutKey(opts.loadout) };
+    g.start();
+    if (opts.demo) g.pause(); // disegna un frame e poi resta ferma
+    return g;
+  }, [data]);
+
+  // Nei menu lo sfondo è l'ultima partita (ferma) o una scena demo; se il loadout cambia (garage) la scena si rifà.
+  const equipped = data?.profile.equipped;
+  const catalog = data?.catalog;
+  const loadout = useMemo(() => (equipped && catalog ? buildLoadout(equipped, catalog) : null), [equipped, catalog]);
+  useEffect(() => {
+    if (!loadout || screen === "playing" || screen === "gameover") return;
+    const cur = mounted.current;
+    if (cur && cur.key === loadoutKey(loadout)) { if (!cur.game.paused) cur.game.pause(); return; }
+    mountGame({ loadout, seed: DEMO_SEED, upgrades: NO_UPGRADES, onEvent: () => {}, demo: true });
+  }, [loadout, screen, mountGame]);
+
+  const onGameOver = useCallback((g: Game) => {
+    const st = g.state;
+    const score = finalScore(st);
+    const run = runRef.current;
+    const newRecord = score > bestRef.current;
+    // haptic una sola volta per partita, quando lo score supera il record
+    if (run && newRecord && !run.recordFired) { run.recordFired = true; haptic("success"); }
+    setSummary({ score, coins: st.coins, distance: Math.floor(st.kart.s), revived: st.revived, newRecord });
+    setScreen("gameover");
+  }, []);
+
+  const play = useCallback(async () => {
+    if (!data || starting) return;
+    setStarting(true);
+    let runId: string, seed: number, unsaved = false;
+    try {
+      ({ runId, seed } = await backend.startRun());
+    } catch (err) {
+      console.warn("[app] startRun fallito, partita locale", err);
+      seed = Math.floor(Math.random() * 2 ** 31);
+      runId = "local-" + Date.now();
+      unsaved = true;
+    }
+    runRef.current = { runId, unsaved, recordFired: false };
+    let g: Game | null = null;
+    g = mountGame({
+      loadout: buildLoadout(data.profile.equipped, data.catalog),
+      seed,
+      upgrades: data.profile.upgrades,
+      onEvent: (e) => { if (e.type === "gameover" && g) onGameOver(g); },
+      demo: false,
+    });
+    setStarting(false);
+    if (!g) return;
+    setGame(g);
+    setUnsaved(unsaved);
+    setSummary(null);
+    setScreen("playing");
+  }, [backend, data, starting, mountGame, onGameOver]);
+
+  /** Invia la partita finita (se salvabile) e aggiorna il profilo; non blocca la UI. */
+  const finishRun = useCallback(() => {
+    const run = runRef.current;
+    runRef.current = null;
+    if (!game || !run || run.unsaved) return;
+    const st = game.state;
+    bestRef.current = Math.max(bestRef.current, finalScore(st));
+    backend.finishRun({
+      runId: run.runId, score: finalScore(st), distance: Math.floor(st.kart.s), coins: st.coins,
+      durationMs: game.durationMs, revived: st.revived, inputs: game.inputs,
+    }).then((r) => setProfile(r.profile), (err) => { console.warn("[app] finishRun fallito", err); show("Partita non salvata"); });
+  }, [backend, game, setProfile, show]);
+
+  const revive = useCallback(async (pay: RevivePay) => {
+    const run = runRef.current;
+    if (!game || !run || busy) return;
+    setBusy(true);
+    try {
+      if (await payRevive(backend, run.runId, pay) && game.revive()) {
+        setScreen("playing");
+        backend.getProfile().then(setProfile, () => {}); // monete o revive scalati
+      } else {
+        show("Pagamento non completato");
+      }
+    } catch (err) {
+      show(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [backend, busy, game, setProfile, show]);
+
+  const toMenu = useCallback(() => { finishRun(); setGame(null); setScreen("menu"); }, [finishRun]);
+  const retry = useCallback(() => { finishRun(); void play(); }, [finishRun, play]);
+  /** Esci dalla pausa: la partita viene abbandonata senza salvarla. */
+  const quit = useCallback(() => { runRef.current = null; setGame(null); setScreen("menu"); }, []);
+
+  const tgName = getTelegramUser()?.first_name;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-[#5ab4e6] to-[#8fcff0]">
+      <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full touch-none" />
+
+      {boot === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <h1 className="-rotate-3 text-5xl font-black italic text-outline">KART-GRAM</h1>
+          <Spinner />
+        </div>
+      )}
+      {boot === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 px-8 text-center">
+          <p className="text-2xl font-black italic text-outline">Impossibile caricare il gioco</p>
+          <p className="font-bold text-outline-sm">Controlla la connessione e riprova.</p>
+          <button type="button" className="btn btn-green w-48 text-2xl" onClick={() => { setBoot("loading"); load(); }}>
+            Riprova
+          </button>
+        </div>
+      )}
+
+      {boot === "ready" && data && profile && (
+        <>
+          {screen === "menu" && (
+            <Menu profile={profile} name={tgName} starting={starting} onPlay={play} onOpen={setScreen} />
+          )}
+          {screen === "playing" && game && (
+            <Hud game={game} bestScore={profile.bestScore} upgrades={profile.upgrades} onExit={quit} />
+          )}
+          {screen === "gameover" && summary && (
+            <GameOver
+              run={summary}
+              profile={profile}
+              unsaved={unsaved}
+              busy={busy || starting}
+              onRevive={revive}
+              onRetry={retry}
+              onMenu={toMenu}
+            />
+          )}
+          {screen === "garage" && (
+            <Garage backend={backend} profile={profile} catalog={data.catalog} onProfile={setProfile} toast={show} onBack={() => setScreen("menu")} />
+          )}
+          {screen === "shop" && (
+            <Shop backend={backend} profile={profile} catalog={data.catalog} onProfile={setProfile} toast={show} onBack={() => setScreen("menu")} />
+          )}
+          {screen === "leaderboard" && (
+            <Leaderboard backend={backend} profile={profile} toast={show} onBack={() => setScreen("menu")} />
+          )}
+        </>
+      )}
+
+      <Toast toast={toast} onDone={hide} />
+    </div>
+  );
+}

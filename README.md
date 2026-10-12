@@ -17,6 +17,21 @@ npm run dev
 
 Apri http://localhost:3000. Per provarlo dentro Telegram serve un URL HTTPS pubblico, per esempio un tunnel con `cloudflared`.
 
+Comandi:
+- **Telefono:** tieni premuto il dito sullo schermo per derapare, rilascia per raddrizzare.
+- **PC:** tieni premuto il tasto sinistro del mouse oppure la **barra spaziatrice**.
+- Il bottone ❚❚ in alto a destra mette in pausa. Il gioco va in pausa da solo anche quando l'app passa in background.
+
+## Come si gioca
+
+Il kart va avanti da solo. Quando arriva una curva tieni premuto: il kart derapa nella direzione della curva. Rilascia per raddrizzare. Se esci dalla strada cadi nel vuoto e la partita finisce.
+
+- **Score:** distanza, derapate lunghe, linea perfetta (vicino al bordo interno della curva) e near-miss con gli ostacoli. La **combo** (fino a 5×) moltiplica i punti e si azzera se colpisci un ostacolo.
+- **Monete:** raccoglile sulla strada e spendile nel **Garage** per kart, vernici, ruote, scie e potenziamenti.
+- **Power-up:** turbo, scudo, magnete, strada larga, slow-mo e x2 si attivano da soli quando li prendi.
+- **Revive:** una volta per partita puoi continuare con 500 monete, 5 ⭐ o un revive già comprato.
+- **Shop:** starter pack, pacchetti di monete e cosmetici esclusivi in Stelle.
+
 ## Variabili d'ambiente
 
 | Variabile | Valori | Descrizione |

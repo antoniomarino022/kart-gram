@@ -1,0 +1,109 @@
+"use client";
+
+import { useState } from "react";
+import { buyWithStars } from "@/backend/purchase";
+import type { Backend, CatalogItem, Profile } from "@/backend/types";
+import { errorText } from "./errors";
+import { Screen } from "./kit";
+import { fmt } from "./loadout";
+
+const IS_MOCK = process.env.NEXT_PUBLIC_BACKEND !== "remote";
+const COSMETIC_KINDS = ["kart", "paint", "wheels", "trail"];
+const KIND_LABEL: Record<string, string> = { kart: "Kart", paint: "Vernice", wheels: "Ruote", trail: "Scia" };
+const PACK_ICONS = ["💰", "🧰", "🏦"];
+
+interface Props {
+  backend: Backend;
+  profile: Profile;
+  catalog: CatalogItem[];
+  onProfile: (p: Profile) => void;
+  toast: (text: string) => void;
+  onBack: () => void;
+}
+
+export function Shop({ backend, profile, catalog, onProfile, toast, onBack }: Props) {
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function buy(it: CatalogItem) {
+    if (busy) return;
+    setBusy(it.id);
+    try {
+      const p = await buyWithStars(backend, it.id);
+      if (!p) { toast("Pagamento non completato"); return; }
+      onProfile(p);
+      toast(it.kind === "coin_pack" ? `+${fmt(it.coins ?? 0)} 🪙` : `${it.name} sbloccato!`);
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // il backend segna lo starter pack tra gli oggetti posseduti una volta comprato
+  const starter = catalog.find((i) => i.kind === "starter_pack" && !profile.owned.includes(i.id));
+  const packs = catalog.filter((i) => i.kind === "coin_pack" && i.priceStars !== undefined);
+  const cosmetics = catalog.filter((i) => COSMETIC_KINDS.includes(i.kind) && i.priceStars !== undefined && i.priceCoins === undefined);
+  const grantName = (id: string) => catalog.find((i) => i.id === id)?.name ?? id;
+
+  return (
+    <Screen title="Shop" coins={profile.coins} onBack={onBack}>
+      {IS_MOCK && (
+        <div className="mb-3 inline-block rounded-full bg-[#ffd23f] px-3 py-1 text-xs font-black text-[#1b1035]">
+          Modalità test: Stelle gratis
+        </div>
+      )}
+
+      {starter && (
+        <div className="animate-pop relative mb-5 overflow-hidden rounded-3xl border-4 border-[#1b1035] bg-gradient-to-br from-[#ff7a1a] via-[#ff3b8d] to-[#8338ec] p-4 shadow-[0_6px_0_#1b1035]">
+          <div className="absolute top-3 right-[-34px] rotate-45 bg-[#ffd23f] px-10 py-0.5 text-xs font-black text-[#1b1035]">UNA VOLTA</div>
+          <div className="text-3xl font-black italic text-outline">{starter.name}</div>
+          <ul className="mt-2 space-y-0.5 text-base font-bold text-outline-sm">
+            {(starter.grants ?? []).map((g) => <li key={g}>🏎️ Kart {grantName(g)}</li>)}
+            {starter.coins ? <li>🪙 {fmt(starter.coins)} monete</li> : null}
+            {starter.revives ? <li>💖 {starter.revives} revive</li> : null}
+          </ul>
+          <button type="button" disabled={busy !== null} onClick={() => buy(starter)} className="btn btn-yellow mt-3 h-14 w-full text-2xl">
+            ⭐ {starter.priceStars}
+          </button>
+        </div>
+      )}
+
+      <h2 className="mb-2 text-xl font-black italic text-outline-sm">Monete</h2>
+      <div className="mb-5 grid grid-cols-3 gap-2">
+        {packs.map((p, i) => (
+          <div key={p.id} className="panel flex flex-col items-center gap-1 p-2 text-center">
+            <div className="text-3xl" aria-hidden>{PACK_ICONS[i] ?? "💰"}</div>
+            <div className="text-lg font-black italic text-outline-sm">{fmt(p.coins ?? 0)}</div>
+            <div className="line-clamp-2 min-h-8 text-[11px] leading-tight text-white/80">{p.name}</div>
+            <button type="button" disabled={busy !== null} onClick={() => buy(p)} className="btn btn-purple w-full px-1 text-sm">
+              ⭐ {p.priceStars}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="mb-2 text-xl font-black italic text-outline-sm">Esclusivi</h2>
+      <div className="grid grid-cols-2 gap-3 pb-4">
+        {cosmetics.map((c) => {
+          const owned = profile.owned.includes(c.id);
+          return (
+            <div key={c.id} className="panel flex flex-col gap-1 p-3">
+              <div className="text-xs font-bold tracking-wider text-white/70 uppercase">{KIND_LABEL[c.kind]}</div>
+              <div className="flex items-center gap-2">
+                {c.color && <span className="h-5 w-5 shrink-0 rounded-full border-2 border-[#1b1035]" style={{ background: c.color }} />}
+                <span className="truncate text-lg font-black italic text-outline-sm">{c.name}</span>
+              </div>
+              {owned ? (
+                <div className="flex min-h-11 items-center justify-center rounded-xl bg-white/10 text-sm font-black italic">✓ Posseduto</div>
+              ) : (
+                <button type="button" disabled={busy !== null} onClick={() => buy(c)} className="btn btn-purple w-full text-sm">
+                  ⭐ {c.priceStars}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Screen>
+  );
+}

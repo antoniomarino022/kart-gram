@@ -23,7 +23,7 @@ const baseName = (name: string) => name.replace(/\.glb$/i, "");
 
 // Forma di ripiego: [larghezza, altezza, profondità, y del centro, colore]
 type FallbackSpec = [number, number, number, number, string];
-const POWERUP_COLORS: Record<string, string> = {
+export const POWERUP_COLORS: Record<string, string> = {
   turbo: "#ff6d00", shield: "#29b6f6", magnet: "#e53935", wide: "#43a047", slowmo: "#8e24aa", x2: "#fdd835",
 };
 

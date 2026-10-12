@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import type { GameState } from "../core/sim";
+import type { GameEvent, GameState } from "../core/sim";
 import { sampleAt } from "../core/track";
 import { Buildings } from "./buildings";
 import { Environment } from "./environment";
+import { Fx } from "./fx";
 import { ItemMeshes } from "./itemMeshes";
 import { KartRig, type Loadout } from "./kart";
 import type { ModelLibrary } from "./models";
@@ -53,6 +54,7 @@ export class GameRenderer {
   private sparks: Sparks;
   private streaks: Streaks;
   private kart: KartRig;
+  private fx = new Fx(this.scene);
 
   private time = 0;
   private first = true;
@@ -97,7 +99,7 @@ export class GameRenderer {
     this.items = new ItemMeshes(this.scene, models);
     this.buildings = new Buildings(this.scene);
     this.trail = new Trail(this.scene, loadout.trailColor, loadout.trailId);
-    this.sparks = new Sparks(this.scene);
+    this.sparks = new Sparks(this.scene, loadout.trailColor);
     this.streaks = new Streaks(this.scene);
     this.kart = new KartRig(models, loadout, this.envMap);
     this.scene.add(this.kart.root);
@@ -118,6 +120,7 @@ export class GameRenderer {
   render(state: GameState, prev: KartPose, alpha: number, frameDt: number) {
     const dt = frameDt;
     this.time += dt;
+    this.fx.restore(this.camera);
     const k = state.kart;
     const running = state.phase === "running";
     const falling = state.phase === "falling";
@@ -174,7 +177,13 @@ export class GameRenderer {
       drifting || turbo, k.fallDepth === 0,
     );
 
+    this.fx.update(state, dt, pxPerMeter, this.camera);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  onEvent(e: GameEvent, state: GameState) {
+    this.fx.onEvent(e, state);
+    if (e.type === "driftEnd" && e.seconds >= 1.5) this.trail.burst();
   }
 
   private updateBiome(biome: number, dt: number) {
@@ -225,6 +234,7 @@ export class GameRenderer {
     this.buildings.dispose();
     this.trail.dispose();
     this.sparks.dispose();
+    this.fx.dispose();
     this.streaks.dispose();
     this.kart.dispose();
     this.envMap?.dispose();

@@ -1,11 +1,12 @@
 export function attachInput(target: HTMLElement, onChange: (pressed: boolean) => void) {
-  let pointers = 0, key = false, last = false;
-  const emit = () => { const p = pointers > 0 || key; if (p !== last) { last = p; onChange(p); } };
-  const down = (e: PointerEvent) => { if (e.pointerType === "mouse" && e.button !== 0) return; e.preventDefault(); pointers++; emit(); };
-  const up = () => { pointers = Math.max(0, pointers - 1); emit(); };
+  const pointers = new Set<number>();
+  let key = false, last = false;
+  const emit = () => { const p = pointers.size > 0 || key; if (p !== last) { last = p; onChange(p); } };
+  const down = (e: PointerEvent) => { if (e.pointerType === "mouse" && e.button !== 0) return; e.preventDefault(); pointers.add(e.pointerId); emit(); };
+  const up = (e: PointerEvent) => { if (pointers.delete(e.pointerId)) emit(); };
   const kd = (e: KeyboardEvent) => { if (e.code === "Space") { e.preventDefault(); key = true; emit(); } };
   const ku = (e: KeyboardEvent) => { if (e.code === "Space") { key = false; emit(); } };
-  const reset = () => { pointers = 0; key = false; emit(); };
+  const reset = () => { pointers.clear(); key = false; emit(); };
   const ctx = (e: Event) => e.preventDefault();
   target.addEventListener("pointerdown", down);
   window.addEventListener("pointerup", up);

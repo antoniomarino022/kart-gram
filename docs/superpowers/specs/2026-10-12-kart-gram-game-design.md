@@ -142,8 +142,12 @@ interface CatalogItem {
   name: string;
   priceCoins?: number;
   priceStars?: number;
-  model?: string;    // es. "kart_bolt.glb"
-  color?: string;    // per le vernici
+  model?: string;                          // es. "kart_bolt.glb"
+  color?: string;                          // per le vernici
+  finish?: "flat" | "metal" | "neon";      // per le vernici
+  coins?: number;                          // monete date da coin_pack / starter_pack
+  revives?: number;                        // revive dati dallo starter_pack
+  grants?: string[];                       // oggetti dati dallo starter_pack
 }
 
 interface RunResult {
@@ -171,6 +175,27 @@ interface Backend {
   getLeaderboard(scope: "global" | "weekly"): Promise<LeaderboardEntry[]>;
 }
 ```
+
+### Replay anti-cheat
+Il backend può rigiocare la partita con `simulate(seed, inputs, { upgrades, revived })` di `src/game/core/sim.ts`.
+Il risultato deve dare lo stesso `score`.
+Se la partita ha `revived: true`, il revive viene applicato in automatico la prima volta che la partita finisce: in quel momento il tick non avanza, quindi la simulazione resta deterministica.
+
+### Endpoint HTTP usati da `remote`
+Tutte le chiamate inviano l'header `Authorization: tma <initData>` e usano JSON.
+
+| Metodo | Endpoint | Body | Risposta |
+|---|---|---|---|
+| GET | `/profile` | — | `Profile` |
+| GET | `/catalog` | — | `CatalogItem[]` |
+| POST | `/runs` | — | `{ runId, seed }` |
+| POST | `/runs/{runId}/finish` | `RunResult` | `{ newBest, coinsEarned, profile }` |
+| POST | `/runs/{runId}/revive` | `{ pay }` | `{ ok, invoiceLink? }` |
+| POST | `/equip` | `{ slot, itemId }` | `Profile` |
+| POST | `/shop/coins` | `{ itemId }` | `Profile` |
+| POST | `/shop/stars-invoice` | `{ itemId }` | `{ invoiceLink }` |
+| POST | `/upgrades` | `{ upgradeId }` | `Profile` |
+| GET | `/leaderboard?scope=global\|weekly` | — | `LeaderboardEntry[]` |
 
 ### Flusso di acquisto in Stelle
 1. Il client chiama `createStarsInvoice(itemId)`.

@@ -49,7 +49,9 @@ export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error")
 export function openInvoice(link: string): Promise<InvoiceStatus> {
   const w = tg();
   if (!w) return Promise.resolve("failed");
-  return new Promise((resolve) => w.openInvoice(link, resolve));
+  return new Promise((resolve) => {
+    try { w.openInvoice(link, resolve); } catch { resolve("failed"); }
+  });
 }
 
 export function onVisibilityChange(cb: (visible: boolean) => void) {

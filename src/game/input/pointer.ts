@@ -1,7 +1,7 @@
 export function attachInput(target: HTMLElement, onChange: (pressed: boolean) => void) {
   let pointers = 0, key = false, last = false;
   const emit = () => { const p = pointers > 0 || key; if (p !== last) { last = p; onChange(p); } };
-  const down = (e: PointerEvent) => { e.preventDefault(); pointers++; emit(); };
+  const down = (e: PointerEvent) => { if (e.pointerType === "mouse" && e.button !== 0) return; e.preventDefault(); pointers++; emit(); };
   const up = () => { pointers = Math.max(0, pointers - 1); emit(); };
   const kd = (e: KeyboardEvent) => { if (e.code === "Space") { e.preventDefault(); key = true; emit(); } };
   const ku = (e: KeyboardEvent) => { if (e.code === "Space") { key = false; emit(); } };

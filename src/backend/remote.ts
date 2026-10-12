@@ -1,7 +1,7 @@
 import { BackendError, type Backend } from "./types";
 
 export function createRemoteBackend(opts: { baseUrl: string; getInitData: () => string; fetchFn?: typeof fetch }): Backend {
-  const f = opts.fetchFn ?? fetch;
+  const f: typeof fetch = opts.fetchFn ?? ((input, init) => fetch(input, init));
   async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
     const res = await f(opts.baseUrl.replace(/\/$/, "") + path, {
       method,

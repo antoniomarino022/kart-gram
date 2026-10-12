@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getBackend, type CatalogItem, type Profile, type RevivePay } from "@/backend";
 import { payRevive } from "@/backend/purchase";
 import { Game } from "@/game/Game";
+import { CONFIG } from "@/game/core/config";
 import { finalScore, NO_UPGRADES, type GameEvent, type UpgradeLevels } from "@/game/core/sim";
 import { ALL_MODEL_NAMES, type Loadout } from "@/game/render/GameRenderer";
 import { loadModels, type ModelLibrary } from "@/game/render/models";
@@ -14,6 +15,7 @@ import { Garage } from "./Garage";
 import { Hud } from "./Hud";
 import { Spinner } from "./kit";
 import { Leaderboard } from "./Leaderboard";
+import { createPopupBus, ScorePopups } from "./ScorePopups";
 import { buildLoadout, loadoutKey } from "./loadout";
 import { Menu } from "./Menu";
 import { Shop } from "./Shop";
@@ -52,6 +54,7 @@ export default function GameApp() {
   const [starting, setStarting] = useState(false);
   const [unsaved, setUnsaved] = useState(false);
   const { toast, show, hide } = useToast();
+  const [popups] = useState(createPopupBus);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /** Game montato sul canvas (partita o scena di sfondo) e chiave del suo loadout. */
@@ -135,7 +138,15 @@ export default function GameApp() {
       loadout: buildLoadout(data.profile.equipped, data.catalog),
       seed,
       upgrades: data.profile.upgrades,
-      onEvent: (e) => { if (e.type === "gameover" && g) onGameOver(g); },
+      onEvent: (e) => {
+        if (e.type === "gameover" && g) onGameOver(g);
+        else if (e.type === "driftEnd" && e.points >= 1) popups.push("drift", e.points);
+        else if (e.type === "nearMiss" && g) {
+          // stesso calcolo della sim: base × combo, raddoppiato con x2
+          const st = g.state;
+          popups.push("nearMiss", CONFIG.score.nearMiss * st.combo * (st.powerups.x2 > 0 ? 2 : 1));
+        }
+      },
       demo: false,
     });
     setStarting(false);
@@ -144,7 +155,7 @@ export default function GameApp() {
     setUnsaved(unsaved);
     setSummary(null);
     setScreen("playing");
-  }, [backend, data, starting, mountGame, onGameOver]);
+  }, [backend, data, starting, mountGame, onGameOver, popups]);
 
   /** Invia la partita finita (se salvabile) e aggiorna il profilo; non blocca la UI. */
   const finishRun = useCallback(() => {
@@ -215,6 +226,7 @@ export default function GameApp() {
           {screen === "menu" && (
             <Menu profile={profile} name={tgName} starting={starting} shopAvailable={data.catalogOk} onPlay={play} onOpen={setScreen} />
           )}
+          {screen === "playing" && game && <ScorePopups bus={popups} />}
           {screen === "playing" && game && (
             <Hud game={game} bestScore={profile.bestScore} upgrades={profile.upgrades} onExit={quit} />
           )}

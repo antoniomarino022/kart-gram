@@ -5,6 +5,7 @@ import { buyWithStars } from "@/backend/purchase";
 import type { Backend, CatalogItem, Profile } from "@/backend/types";
 import { errorText } from "./errors";
 import { Screen } from "./kit";
+import type { TrackProfile } from "./profileSync";
 import { fmt } from "./loadout";
 
 const IS_MOCK = process.env.NEXT_PUBLIC_BACKEND !== "remote";
@@ -16,24 +17,24 @@ interface Props {
   backend: Backend;
   profile: Profile;
   catalog: CatalogItem[];
-  onProfile: (p: Profile) => void;
+  track: TrackProfile;
   toast: (text: string) => void;
   onBack: () => void;
 }
 
-export function Shop({ backend, profile, catalog, onProfile, toast, onBack }: Props) {
+export function Shop({ backend, profile, catalog, track, toast, onBack }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function buy(it: CatalogItem) {
     if (busy) return;
     setBusy(it.id);
     try {
-      const p = await buyWithStars(backend, it.id);
+      const p = await track(buyWithStars(backend, it.id));
       if (!p) { toast("Pagamento non completato"); return; }
-      onProfile(p);
       toast(it.kind === "coin_pack" ? `+${fmt(it.coins ?? 0)} 🪙` : `${it.name} sbloccato!`);
     } catch (err) {
       toast(errorText(err));
+      track(backend.getProfile()).catch(() => {});
     } finally {
       setBusy(null);
     }

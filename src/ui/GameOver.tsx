@@ -23,9 +23,10 @@ interface Props {
 
 export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMenu }: Props) {
   return (
-    <div className="pt-safe pb-safe absolute inset-0 z-10 flex flex-col items-center justify-center overflow-y-auto bg-[#1b1035]/55 px-5 backdrop-blur-[2px]">
-      <div className="flex w-full max-w-sm flex-col items-center gap-4">
-        <h1 className="text-5xl font-black italic text-outline">GAME OVER</h1>
+    <div className="pt-safe pb-safe absolute inset-0 z-10 flex flex-col items-center overflow-y-auto bg-[#1b1035]/55 px-5 backdrop-blur-[2px]">
+      {/* my-auto invece di justify-center: se il contenuto è più alto dello schermo scorre senza tagliare la parte alta */}
+      <div className="my-auto flex w-full max-w-sm flex-col items-center gap-4">
+        <h1 className="text-4xl font-black whitespace-nowrap italic text-outline min-[360px]:text-5xl">GAME OVER</h1>
 
         <div className="panel w-full p-5 text-center">
           {run.newRecord && (
@@ -40,10 +41,11 @@ export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMen
           {unsaved && <p className="mt-3 text-sm font-bold text-[#ffb4a8]">Partita non salvata (offline)</p>}
         </div>
 
-        {!run.revived && (
+        {/* una partita offline (senza runId del backend) non può essere rianimata */}
+        {!run.revived && !unsaved && (
           <div className="panel flex w-full flex-col gap-3 p-4">
             <div className="text-center text-lg font-black italic text-outline-sm">Continua la corsa?</div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-3">
               <button type="button" disabled={busy || profile.coins < REVIVE_PRICE.coins} onClick={() => onRevive("coins")} className="btn btn-yellow px-2 text-sm whitespace-nowrap">
                 Continua · {REVIVE_PRICE.coins} 🪙
               </button>
@@ -60,10 +62,10 @@ export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMen
         )}
 
         <div className="grid w-full grid-cols-2 gap-3">
-          <button type="button" disabled={busy} onClick={onRetry} className="btn btn-green h-16 text-2xl">
+          <button type="button" disabled={busy} onClick={onRetry} className="btn btn-green h-16 text-xl whitespace-nowrap min-[360px]:text-2xl">
             ↻ Riprova
           </button>
-          <button type="button" disabled={busy} onClick={onMenu} className="btn btn-white h-16 text-2xl">
+          <button type="button" disabled={busy} onClick={onMenu} className="btn btn-white h-16 text-xl whitespace-nowrap min-[360px]:text-2xl">
             Menu
           </button>
         </div>

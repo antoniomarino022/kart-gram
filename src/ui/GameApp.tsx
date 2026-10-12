@@ -17,6 +17,7 @@ import { Leaderboard } from "./Leaderboard";
 import { buildLoadout, loadoutKey } from "./loadout";
 import { Menu } from "./Menu";
 import { Shop } from "./Shop";
+import { createProfileTracker } from "./profileSync";
 import { Toast, useToast } from "./Toast";
 
 type ScreenId = "menu" | "playing" | "gameover" | "garage" | "shop" | "leaderboard";
@@ -32,7 +33,13 @@ interface Run {
   recordFired: boolean;
 }
 
-interface Ready { profile: Profile; catalog: CatalogItem[]; models: ModelLibrary }
+interface Ready {
+  profile: Profile;
+  catalog: CatalogItem[];
+  /** false se il catalogo non è arrivato: garage e shop disabilitati, loadout di default */
+  catalogOk: boolean;
+  models: ModelLibrary;
+}
 
 export default function GameApp() {
   const [backend] = useState(getBackend);
@@ -55,15 +62,21 @@ export default function GameApp() {
 
   const profile = data?.profile;
   useEffect(() => { bestRef.current = Math.max(bestRef.current, profile?.bestScore ?? 0); }, [profile]);
-  const setProfile = useCallback((p: Profile) => setData((d) => (d ? { ...d, profile: p } : d)), []);
+  // tutte le risposte che contengono un profilo passano da qui: una risposta vecchia non sovrascrive una più nuova
+  const [track] = useState(() => createProfileTracker((p: Profile) => setData((d) => (d ? { ...d, profile: p } : d))));
 
   const load = useCallback(() => {
     initTelegram();
-    Promise.all([backend.getProfile(), backend.getCatalog(), loadModels(ALL_MODEL_NAMES)]).then(
-      ([profile, catalog, models]) => { setData({ profile, catalog, models }); setBoot("ready"); },
+    // il catalogo è facoltativo (spec: senza catalogo lo shop è disabilitato), il profilo no
+    const catalog = backend.getCatalog().then(
+      (c) => ({ catalog: c, catalogOk: true }),
+      (err) => { console.warn("[app] catalogo non disponibile", err); return { catalog: [] as CatalogItem[], catalogOk: false }; },
+    );
+    Promise.all([track(backend.getProfile()), catalog, loadModels(ALL_MODEL_NAMES)]).then(
+      ([profile, c, models]) => { setData({ profile, ...c, models }); setBoot("ready"); },
       (err) => { console.error("[app] caricamento fallito", err); setBoot("error"); },
     );
-  }, [backend]);
+  }, [backend, track]);
 
   useEffect(load, [load]);
 
@@ -140,29 +153,35 @@ export default function GameApp() {
     if (!game || !run || run.unsaved) return;
     const st = game.state;
     bestRef.current = Math.max(bestRef.current, finalScore(st));
-    backend.finishRun({
+    track(backend.finishRun({
       runId: run.runId, score: finalScore(st), distance: Math.floor(st.kart.s), coins: st.coins,
       durationMs: game.durationMs, revived: st.revived, inputs: game.inputs,
-    }).then((r) => setProfile(r.profile), (err) => { console.warn("[app] finishRun fallito", err); show("Partita non salvata"); });
-  }, [backend, game, setProfile, show]);
+    }).then((r) => r.profile)).catch((err) => { console.warn("[app] finishRun fallito", err); show("Partita non salvata"); });
+  }, [backend, game, track, show]);
 
   const revive = useCallback(async (pay: RevivePay) => {
     const run = runRef.current;
     if (!game || !run || busy) return;
     setBusy(true);
+    const refresh = () => { track(backend.getProfile()).catch(() => {}); }; // monete o revive scalati
     try {
-      if (await payRevive(backend, run.runId, pay) && game.revive()) {
-        setScreen("playing");
-        backend.getProfile().then(setProfile, () => {}); // monete o revive scalati
-      } else {
+      if (!(await payRevive(backend, run.runId, pay))) {
         show("Pagamento non completato");
+      } else if (game.revive()) {
+        setScreen("playing");
+        refresh();
+      } else {
+        // pagato ma la partita non si può riprendere (es. già rianimata): lo segnaliamo a parte
+        show("Revive non riuscito: contatta il supporto se ti è stato addebitato");
+        refresh();
       }
     } catch (err) {
       show(errorText(err));
+      refresh();
     } finally {
       setBusy(false);
     }
-  }, [backend, busy, game, setProfile, show]);
+  }, [backend, busy, game, track, show]);
 
   const toMenu = useCallback(() => { finishRun(); setGame(null); setScreen("menu"); }, [finishRun]);
   const retry = useCallback(() => { finishRun(); void play(); }, [finishRun, play]);
@@ -194,7 +213,7 @@ export default function GameApp() {
       {boot === "ready" && data && profile && (
         <>
           {screen === "menu" && (
-            <Menu profile={profile} name={tgName} starting={starting} onPlay={play} onOpen={setScreen} />
+            <Menu profile={profile} name={tgName} starting={starting} shopAvailable={data.catalogOk} onPlay={play} onOpen={setScreen} />
           )}
           {screen === "playing" && game && (
             <Hud game={game} bestScore={profile.bestScore} upgrades={profile.upgrades} onExit={quit} />
@@ -211,10 +230,10 @@ export default function GameApp() {
             />
           )}
           {screen === "garage" && (
-            <Garage backend={backend} profile={profile} catalog={data.catalog} onProfile={setProfile} toast={show} onBack={() => setScreen("menu")} />
+            <Garage backend={backend} profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
           )}
           {screen === "shop" && (
-            <Shop backend={backend} profile={profile} catalog={data.catalog} onProfile={setProfile} toast={show} onBack={() => setScreen("menu")} />
+            <Shop backend={backend} profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
           )}
           {screen === "leaderboard" && (
             <Leaderboard backend={backend} profile={profile} toast={show} onBack={() => setScreen("menu")} />

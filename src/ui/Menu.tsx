@@ -4,7 +4,7 @@ import { fmt } from "./loadout";
 
 export type MenuTarget = "garage" | "shop" | "leaderboard";
 
-export function Menu({ profile, name, starting, onPlay, onOpen }: { profile: Profile; name?: string; starting: boolean; onPlay: () => void; onOpen: (s: MenuTarget) => void }) {
+export function Menu({ profile, name, starting, shopAvailable, onPlay, onOpen }: { profile: Profile; name?: string; starting: boolean; shopAvailable: boolean; onPlay: () => void; onOpen: (s: MenuTarget) => void }) {
   return (
     <div className="pt-safe pb-safe absolute inset-0 flex flex-col items-center bg-gradient-to-b from-[#1b1035]/40 via-transparent to-[#1b1035]/70 px-5">
       <div className="flex w-full items-center justify-between">
@@ -26,16 +26,19 @@ export function Menu({ profile, name, starting, onPlay, onOpen }: { profile: Pro
           {starting ? "…" : "▶ GIOCA"}
         </button>
         <div className="grid w-full grid-cols-3 gap-3">
-          <button type="button" onClick={() => onOpen("garage")} className="btn btn-orange flex-col gap-0 px-1 py-2 text-sm">
+          <button type="button" onClick={() => onOpen("garage")} disabled={!shopAvailable} className="btn btn-orange flex-col gap-0 px-1 py-2 text-sm">
             <span className="text-2xl not-italic">🏎️</span>Garage
           </button>
-          <button type="button" onClick={() => onOpen("shop")} className="btn btn-purple flex-col gap-0 px-1 py-2 text-sm">
+          <button type="button" onClick={() => onOpen("shop")} disabled={!shopAvailable} className="btn btn-purple flex-col gap-0 px-1 py-2 text-sm">
             <span className="text-2xl not-italic">⭐</span>Shop
           </button>
           <button type="button" onClick={() => onOpen("leaderboard")} className="btn btn-yellow flex-col gap-0 px-1 py-2 text-sm">
             <span className="text-2xl not-italic">🏆</span>Classifica
           </button>
         </div>
+        {!shopAvailable && (
+          <p className="text-center text-xs font-bold text-[#ffb4a8] text-outline-sm">Garage e Shop non disponibili: catalogo non raggiungibile</p>
+        )}
         <p className="mt-1 mb-2 text-center text-sm font-bold text-outline-sm">Tieni premuto per derapare</p>
       </div>
     </div>

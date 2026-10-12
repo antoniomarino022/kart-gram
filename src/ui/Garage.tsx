@@ -6,6 +6,7 @@ import { buyWithStars } from "@/backend/purchase";
 import type { Backend, CatalogItem, Profile, Slot, UpgradeId } from "@/backend/types";
 import { errorText } from "./errors";
 import { Screen } from "./kit";
+import type { TrackProfile } from "./profileSync";
 import { fmt } from "./loadout";
 
 type Tab = Slot | "upgrades";
@@ -29,35 +30,43 @@ interface Props {
   backend: Backend;
   profile: Profile;
   catalog: CatalogItem[];
-  onProfile: (p: Profile) => void;
+  track: TrackProfile;
   toast: (text: string) => void;
   onBack: () => void;
 }
 
-export function Garage({ backend, profile, catalog, onProfile, toast, onBack }: Props) {
+export function Garage({ backend, profile, catalog, track, toast, onBack }: Props) {
   const [tab, setTab] = useState<Tab>("kart");
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function act(key: string, fn: () => Promise<Profile | null>, okText?: string) {
+  /** Esegue l'azione; su errore mostra il toast e riallinea il profilo (un acquisto può essere andato a buon fine). */
+  async function act(key: string, fn: () => Promise<void>) {
     if (busy) return;
     setBusy(key);
     try {
-      const p = await fn();
-      if (p) { onProfile(p); if (okText) toast(okText); }
-      else toast("Pagamento non completato");
+      await fn();
     } catch (err) {
       toast(errorText(err));
+      track(backend.getProfile()).catch(() => {});
     } finally {
       setBusy(null);
     }
   }
 
-  const equip = (it: CatalogItem) => act(it.id, () => backend.equip(it.kind as Slot, it.id));
-  const buyCoins = (it: CatalogItem) =>
-    act(it.id, async () => { await backend.buyWithCoins(it.id); return backend.equip(it.kind as Slot, it.id); }, `${it.name} sbloccato!`);
-  const buyStars = (it: CatalogItem) =>
-    act(it.id, async () => (await buyWithStars(backend, it.id)) && backend.equip(it.kind as Slot, it.id), `${it.name} sbloccato!`);
-  const upgrade = (id: UpgradeId) => act(id, () => backend.buyUpgrade(id), "Potenziamento migliorato!");
+  const equipSlot = (it: CatalogItem) => track(backend.equip(it.kind as Slot, it.id));
+  const equip = (it: CatalogItem) => act(it.id, async () => { await equipSlot(it); });
+  // l'acquisto si applica subito; l'equipaggiamento è un passo separato, così se fallisce l'oggetto resta comprato
+  const buyCoins = (it: CatalogItem) => act(it.id, async () => {
+    await track(backend.buyWithCoins(it.id));
+    toast(`${it.name} sbloccato!`);
+    await equipSlot(it);
+  });
+  const buyStars = (it: CatalogItem) => act(it.id, async () => {
+    if (!(await track(buyWithStars(backend, it.id)))) { toast("Pagamento non completato"); return; }
+    toast(`${it.name} sbloccato!`);
+    await equipSlot(it);
+  });
+  const upgrade = (id: UpgradeId) => act(id, async () => { await track(backend.buyUpgrade(id)); toast("Potenziamento migliorato!"); });
 
   const items = tab === "upgrades" ? [] : catalog.filter((i) => i.kind === tab);
 

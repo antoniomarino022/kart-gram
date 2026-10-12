@@ -28,7 +28,8 @@ export function Toast({ toast, onDone }: { toast: ToastMsg | null; onDone: () =>
       role="status"
       aria-live="polite"
       className="animate-toast pointer-events-none fixed left-1/2 z-50 max-w-[90vw] rounded-2xl border-2 border-[#1b1035] bg-[#1b1035]/90 px-5 py-3 text-center font-bold text-white shadow-lg"
-      style={{ bottom: "calc(max(1rem, var(--safe-bottom)) + 1rem)" }}
+      // in alto, sotto HUD e intestazioni: così non copre mai i bottoni in basso (es. game over)
+      style={{ top: "calc(max(0.75rem, var(--safe-top)) + 6.5rem)" }}
     >
       {toast.text}
     </div>

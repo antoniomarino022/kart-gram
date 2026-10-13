@@ -156,6 +156,7 @@ export class Game {
     const h = HAPTICS[e.type];
     if (h) haptic(h);
     try {
+      this.renderer.onEvent(e, this.state);
       this.onEvent(e);
     } catch (err) {
       console.error("[game] errore in onEvent", err);

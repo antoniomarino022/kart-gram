@@ -1,125 +1,101 @@
 import * as THREE from "three";
+import { newEmit, ParticlePool } from "./fx/particles";
 
-const POOL = 64;
-const LIFE = 0.28;
-/** Scintille al secondo per angolo. */
-const RATE = 36;
-const GRAVITY = 9;
+const POOL = 160;
+/** Scintille al secondo a regime (velocità alta, drift lungo). */
+const RATE = 90;
+/** A inizio drift si emette di meno: il ritmo sale col tempo di slittamento. */
+const SLIP_RAMP = 0.6;
+/** Scintille della raffica d'inizio drift. */
+export const DRIFT_BURST = 26;
+const GRAVITY = 14;
+/** Quota del suolo rispetto al punto d'emissione (dietro la ruota, poco sopra la strada). */
+const FLOOR_DROP = 0.07;
+/** Quanto della velocità del kart ereditano (il resto le fa restare indietro). */
+const INHERIT = 0.55;
+/** Oltre questo salto tra due frame (revive, teletrasporto) non si stima la velocità. */
+const JUMP = 3;
 
-const VERTEX = /* glsl */ `
-attribute float aAlpha;
-attribute vec3 aColor;
-uniform float uScale;
-varying float vAlpha;
-varying vec3 vColor;
-void main() {
-  vAlpha = aAlpha;
-  vColor = aColor;
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  gl_PointSize = max(2.0, 0.16 * uScale / max(0.1, -mv.z));
-  gl_Position = projectionMatrix * mv;
-}`;
+const HOT = new THREE.Color("#ffb52a");
+const ORANGE = new THREE.Color("#ff3800");
 
-// stellina a 4 punte, additiva
-const FRAGMENT = /* glsl */ `
-varying float vAlpha;
-varying vec3 vColor;
-void main() {
-  vec2 p = abs(gl_PointCoord * 2.0 - 1.0);
-  float star = max(1.0 - (p.x * 4.0 + p.y), 1.0 - (p.y * 4.0 + p.x));
-  float core = 1.0 - smoothstep(0.0, 0.45, length(p));
-  float m = clamp(max(star, core), 0.0, 1.0) * vAlpha;
-  if (m < 0.01) discard;
-  gl_FragColor = vec4(vColor * m, m);
-  #include <colorspace_fragment>
-}`;
-
-const ATTRS = ["position", "aColor", "aAlpha"] as const;
-const WHITE = new THREE.Color("#ffffff");
-const YELLOW = new THREE.Color("#ffd84a");
-
-/** Scintille del drift: piccoli punti luminosi che schizzano dalla ruota posteriore esterna alla curva. */
+/** Scintille del drift: grosse gocce di luce additive che schizzano dalla ruota posteriore esterna e rimbalzano sulla strada. */
 export class Sparks {
-  private geometry = new THREE.BufferGeometry();
-  private material = new THREE.ShaderMaterial({
-    vertexShader: VERTEX,
-    fragmentShader: FRAGMENT,
-    uniforms: { uScale: { value: 400 } },
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-  });
-  private points: THREE.Points;
-  private pos = new Float32Array(POOL * 3);
-  private vel = new Float32Array(POOL * 3);
-  private col = new Float32Array(POOL * 3);
-  private alpha = new Float32Array(POOL);
-  private age = new Float32Array(POOL).fill(LIFE);
-  private next = 0;
+  private pool = new ParticlePool(POOL, 3);
+  private e = newEmit();
+  private start = new THREE.Color();
+  private end = new THREE.Color();
+  private last = new THREE.Vector3();
+  private kv = new THREE.Vector3();
+  private hasLast = false;
+  private wasEmitting = false;
+  private slip = 0;
   private acc = 0;
-  private live = false;
 
-  constructor(private scene: THREE.Scene) {
-    this.geometry.setAttribute("position", new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
-    this.geometry.setAttribute("aColor", new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
-    this.geometry.setAttribute("aAlpha", new THREE.BufferAttribute(this.alpha, 1).setUsage(THREE.DynamicDrawUsage));
-    this.points = new THREE.Points(this.geometry, this.material);
-    this.points.frustumCulled = false;
-    this.points.renderOrder = 3;
-    scene.add(this.points);
+  constructor(private scene: THREE.Scene, tint = "#ffd84a") {
+    const t = new THREE.Color(tint);
+    // nucleo quasi bianco, coda arancio con una punta del colore della scia
+    this.start.copy(HOT).lerp(t, 0.1);
+    this.end.copy(ORANGE).lerp(t, 0.25);
+    this.e.c0.copy(this.start);
+    this.e.c1.copy(this.end);
+    scene.add(this.pool.points);
   }
+
+  /** Particelle vive (per i test). */
+  get liveCount() { return this.pool.liveCount; }
 
   /**
    * `wheel`: ruota posteriore esterna, `side`: suo lato (-1 sinistra, 1 destra) per la spinta verso l'esterno.
-   * `back`: direzione mondo verso il retro del kart (normalizzata).
+   * `back`: direzione mondo verso il retro del kart (normalizzata). `scale`: pixel per metro a distanza 1.
    */
   update(emitting: boolean, wheel: THREE.Vector3, side: -1 | 1, back: THREE.Vector3, dt: number, scale: number) {
-    this.material.uniforms.uScale.value = scale;
-    if (emitting) {
-      this.acc += dt * RATE * 2;
-      while (this.acc >= 1) {
-        this.acc -= 1;
-        this.emit(wheel, back, side);
-      }
-    } else this.acc = 0;
-    if (!this.live) return;
+    // velocità del kart stimata dallo spostamento della ruota (niente dipendenze dal core)
+    if (this.hasLast && dt > 0 && this.last.distanceToSquared(wheel) < JUMP * JUMP) {
+      this.kv.subVectors(wheel, this.last).divideScalar(dt);
+    } else if (dt > 0) this.kv.set(0, 0, 0);
+    this.last.copy(wheel);
+    this.hasLast = true;
+    const speed = this.kv.length();
 
-    let any = false;
-    for (let i = 0; i < POOL; i++) {
-      if (this.age[i] >= LIFE) continue;
-      const a = (this.age[i] = Math.min(LIFE, this.age[i] + dt));
-      const t = a / LIFE;
-      this.vel[i * 3 + 1] -= GRAVITY * dt;
-      this.pos[i * 3] += this.vel[i * 3] * dt;
-      this.pos[i * 3 + 1] += this.vel[i * 3 + 1] * dt;
-      this.pos[i * 3 + 2] += this.vel[i * 3 + 2] * dt;
-      this.alpha[i] = t >= 1 ? 0 : 1 - t * t;
-      if (t < 1) any = true;
-    }
-    this.live = any;
-    for (const name of ATTRS) this.geometry.getAttribute(name).needsUpdate = true;
+    if (emitting) {
+      if (!this.wasEmitting) { this.slip = 0; this.burst(DRIFT_BURST, wheel, side, back); }
+      this.slip = Math.min(1, this.slip + dt / SLIP_RAMP);
+      const rate = RATE * (0.35 + 0.65 * this.slip) * Math.min(1.3, 0.5 + speed / 40);
+      this.acc += dt * rate;
+      while (this.acc >= 1) { this.acc -= 1; this.emit(wheel, back, side, 1); }
+    } else this.acc = 0;
+    this.wasEmitting = emitting;
+    this.pool.update(dt, scale);
   }
 
-  private emit(at: THREE.Vector3, back: THREE.Vector3, side: number) {
-    const i = this.next;
-    this.next = (this.next + 1) % POOL;
-    this.age[i] = 0;
-    this.pos[i * 3] = at.x; this.pos[i * 3 + 1] = at.y + 0.05; this.pos[i * 3 + 2] = at.z;
-    // indietro, verso l'esterno e in alto, con un po' di dispersione
-    const sp = 2.5 + Math.random() * 3;
-    const out = side * (0.8 + Math.random() * 1.5);
-    this.vel[i * 3] = back.x * sp - back.z * out + (Math.random() - 0.5);
-    this.vel[i * 3 + 1] = 1.2 + Math.random() * 2;
-    this.vel[i * 3 + 2] = back.z * sp + back.x * out + (Math.random() - 0.5);
-    const c = Math.random() < 0.5 ? WHITE : YELLOW;
-    this.col[i * 3] = c.r; this.col[i * 3 + 1] = c.g; this.col[i * 3 + 2] = c.b;
-    this.alpha[i] = 1;
-    this.live = true;
+  /** Raffica di `n` scintille più veloci e grandi (inizio drift, near miss). */
+  burst(n: number, wheel: THREE.Vector3, side: number, back: THREE.Vector3) {
+    for (let i = 0; i < n; i++) this.emit(wheel, back, side, 1.5);
+  }
+
+  private emit(at: THREE.Vector3, back: THREE.Vector3, side: number, power: number) {
+    const e = this.e;
+    const r = Math.random;
+    e.x = at.x + (r() - 0.5) * 0.3; e.y = at.y + 0.04; e.z = at.z + (r() - 0.5) * 0.3;
+    e.floor = at.y - FLOOR_DROP;
+    // indietro, verso l'esterno e in alto, con dispersione; parte della velocità del kart ereditata
+    const sp = (2.5 + r() * 4) * power;
+    const out = side * (1 + r() * 2.2) * power;
+    e.vx = this.kv.x * INHERIT + back.x * sp - back.z * out + (r() - 0.5) * 1.5;
+    e.vy = (0.8 + r() * 1.8) * power;
+    e.vz = this.kv.z * INHERIT + back.z * sp + back.x * out + (r() - 0.5) * 1.5;
+    e.life = 0.3 + r() * 0.2;
+    e.size0 = 0.25 + r() * 0.35;
+    e.size1 = 0.05;
+    e.hot = 0.5 + r() * 0.5;
+    e.gravity = GRAVITY;
+    e.drag = 1.2;
+    this.pool.emit(e);
   }
 
   dispose() {
-    this.scene.remove(this.points);
-    this.geometry.dispose();
-    this.material.dispose();
+    this.scene.remove(this.pool.points);
+    this.pool.dispose();
   }
 }

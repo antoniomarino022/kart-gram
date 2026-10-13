@@ -18,4 +18,6 @@ export function buildLoadout(equipped: Profile["equipped"], catalog: CatalogItem
 
 export const loadoutKey = (l: Loadout) => [l.kartModel, l.wheelModel, l.paint.color, l.paint.finish, l.trailId].join("|");
 
-export const fmt = (n: number) => Math.floor(n).toLocaleString("it-IT");
+// separatore delle migliaia anche a 4 cifre (in it-IT di default 5000 resterebbe "5000")
+const NUM = new Intl.NumberFormat("it-IT", { useGrouping: "always" });
+export const fmt = (n: number) => NUM.format(Math.floor(n));

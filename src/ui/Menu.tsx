@@ -1,46 +1,76 @@
+import { useState } from "react";
 import type { Profile } from "@/backend/types";
 import { CoinBadge } from "./kit";
 import { fmt } from "./loadout";
+import { hapticsEnabled, setHapticsEnabled, uiHaptic } from "./settings";
 
 export type MenuTarget = "garage" | "shop" | "leaderboard";
 
 export function Menu({ profile, name, starting, shopAvailable, onPlay, onOpen }: { profile: Profile; name?: string; starting: boolean; shopAvailable: boolean; onPlay: () => void; onOpen: (s: MenuTarget) => void }) {
   return (
-    <div className="pt-safe pb-safe absolute inset-0 flex flex-col items-center bg-gradient-to-b from-[#1b1035]/40 via-transparent to-[#1b1035]/70 px-5">
-      <div className="flex w-full items-center justify-between">
-        <div className="panel rounded-full px-3 py-1.5 text-sm font-black italic text-outline-sm">
-          🏆 BEST {fmt(profile.bestScore)}
-        </div>
+    <div className="pt-safe pb-safe absolute inset-0 flex flex-col px-4">
+      <div className="flex w-full items-start justify-between gap-2">
         <CoinBadge coins={profile.coins} />
+        <HapticsToggle />
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <h1 className="animate-pop -rotate-3 text-center text-[3.4rem] leading-none font-black whitespace-nowrap italic tracking-tight text-outline sm:text-7xl">
-          KART<span className="text-[#ffd23f]">-</span>GRAM
-        </h1>
-        <p className="mt-3 text-base font-bold italic text-outline-sm">{name ? `Ciao ${name}, pronto` : "Pronto"} a derapare?</p>
-      </div>
-
-      <div className="flex w-full max-w-sm flex-col items-center gap-4">
-        <button type="button" onClick={onPlay} disabled={starting} className="btn btn-green h-20 w-full text-4xl">
-          {starting ? "…" : "▶ GIOCA"}
-        </button>
-        <div className="grid w-full grid-cols-3 gap-3">
-          <button type="button" onClick={() => onOpen("garage")} disabled={!shopAvailable} className="btn btn-orange flex-col gap-0 px-1 py-2 text-sm">
-            <span className="text-2xl not-italic">🏎️</span>Garage
-          </button>
-          <button type="button" onClick={() => onOpen("shop")} disabled={!shopAvailable} className="btn btn-purple flex-col gap-0 px-1 py-2 text-sm">
-            <span className="text-2xl not-italic">⭐</span>Shop
-          </button>
-          <button type="button" onClick={() => onOpen("leaderboard")} className="btn btn-yellow flex-col gap-0 px-1 py-2 text-sm">
-            <span className="text-2xl not-italic">🏆</span>Classifica
-          </button>
+      {/* logo nel terzo superiore */}
+      <div className="flex flex-[1.1] flex-col items-center justify-center">
+        {/* animazione sul contenitore: la transform del logo (inclinazione) non va sovrascritta */}
+        <div className="animate-pop">
+          <h1 className="logo text-center text-[6.5rem] min-[360px]:text-[7.5rem]" aria-label="Kart-Gram">
+            <span className="block">KART</span>
+            <span className="block">GRAM</span>
+          </h1>
         </div>
+        <p className="mt-4 text-lg font-extrabold">{name ? `Ciao ${name}, pronto` : "Pronto"} a derapare?</p>
+      </div>
+
+      <div className="mx-auto flex w-full max-w-[290px] flex-col gap-2">
+        <button type="button" onClick={onPlay} disabled={starting} className="btn btn-primary h-14 text-3xl font-black">
+          {starting ? "…" : "Gioca"}
+        </button>
+        <button type="button" onClick={() => onOpen("garage")} disabled={!shopAvailable} className="btn btn-secondary h-[52px] text-2xl">
+          Garage
+        </button>
+        <button type="button" onClick={() => onOpen("shop")} disabled={!shopAvailable} className="btn btn-secondary h-[52px] text-2xl">
+          Shop
+        </button>
+        <button type="button" onClick={() => onOpen("leaderboard")} className="btn btn-secondary h-[52px] text-2xl">
+          Classifica
+        </button>
         {!shopAvailable && (
-          <p className="text-center text-xs font-bold text-[#ffb4a8] text-outline-sm">Garage e Shop non disponibili: catalogo non raggiungibile</p>
+          <p className="box px-3 py-1.5 text-center text-sm">Garage e Shop non disponibili: catalogo non raggiungibile</p>
         )}
-        <p className="mt-1 mb-2 text-center text-sm font-bold text-outline-sm">Tieni premuto a sinistra o a destra per derapare</p>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-end gap-3 pt-4">
+        <p className="text-center text-base font-extrabold">Tieni premuto a sinistra o a destra per derapare</p>
+        <div className="box self-start px-3 py-2 text-lg leading-tight font-extrabold">
+          <div>Modalità: <span className="text-ui-accent">Infinite Drift</span></div>
+          <div>Best score: <span className="text-ui-accent">⭐ {fmt(profile.bestScore)} pt</span></div>
+        </div>
       </div>
     </div>
+  );
+}
+
+/** Interruttore vibrazione (salvato in localStorage). */
+function HapticsToggle() {
+  const [on, setOn] = useState(hapticsEnabled);
+  const toggle = () => {
+    const next = !on;
+    setHapticsEnabled(next);
+    setOn(next);
+    if (next) uiHaptic("light"); // conferma tattile quando si riaccende
+  };
+  return (
+    <button type="button" onClick={toggle} className="icon-btn" aria-pressed={on} aria-label={on ? "Vibrazione attiva" : "Vibrazione disattivata"}>
+      <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden className={on ? "" : "opacity-60"}>
+        <rect x="7.5" y="3" width="9" height="18" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M4 8v8M1.5 10v4M20 8v8M22.5 10v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        {!on && <path d="M3 3l18 18" stroke="var(--ui-primary)" strokeWidth="2.6" strokeLinecap="round" />}
+      </svg>
+    </button>
   );
 }

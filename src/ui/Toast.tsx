@@ -27,7 +27,7 @@ export function Toast({ toast, onDone }: { toast: ToastMsg | null; onDone: () =>
       key={toast.id}
       role="status"
       aria-live="polite"
-      className="animate-toast pointer-events-none fixed left-1/2 z-50 max-w-[90vw] rounded-2xl border-2 border-[#1b1035] bg-[#1b1035]/90 px-5 py-3 text-center font-bold text-white shadow-lg"
+      className="ui-root box animate-toast pointer-events-none fixed left-1/2 z-50 max-w-[90vw] px-4 py-2.5 text-center text-lg font-extrabold"
       // in alto, sotto HUD e intestazioni: così non copre mai i bottoni in basso (es. game over)
       style={{ top: "calc(max(0.75rem, var(--safe-top)) + 6.5rem)" }}
     >

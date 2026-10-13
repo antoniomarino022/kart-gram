@@ -28,7 +28,7 @@ export function Leaderboard({ backend, profile, toast, onBack }: { backend: Back
     <Screen title="Classifica" onBack={onBack}>
       <div className="mb-4 grid grid-cols-2 gap-2">
         {(["global", "weekly"] as const).map((s) => (
-          <button key={s} type="button" onClick={() => setScope(s)} aria-pressed={scope === s} className={`btn text-base ${scope === s ? "btn-yellow" : "btn-gray"}`}>
+          <button key={s} type="button" onClick={() => setScope(s)} aria-pressed={scope === s} className={`btn text-xl ${scope === s ? "btn-primary" : "btn-secondary"}`}>
             {s === "global" ? "Globale" : "Settimanale"}
           </button>
         ))}
@@ -37,23 +37,23 @@ export function Leaderboard({ backend, profile, toast, onBack }: { backend: Back
       {!shown ? (
         <Spinner />
       ) : !shown.entries ? (
-        <p className="py-10 text-center font-bold text-outline-sm">Classifica non disponibile</p>
+        <p className="box my-6 px-3 py-4 text-center text-lg">Classifica non disponibile</p>
       ) : shown.entries.length === 0 ? (
-        <p className="py-10 text-center font-bold text-outline-sm">Ancora nessun punteggio</p>
+        <p className="box my-6 px-3 py-4 text-center text-lg">Ancora nessun punteggio</p>
       ) : (
-        <ol className="flex flex-col gap-2 pb-4">
+        <ol className="flex flex-col gap-1.5 pb-4">
           {shown.entries.map((e) => {
             const me = e.userId === profile.userId;
             return (
               <li
                 key={e.userId}
-                className={`flex min-h-12 items-center gap-3 rounded-2xl px-3 py-2 ${me ? "border-2 border-[#1b1035] bg-[#ffd23f] text-[#1b1035]" : "panel"}`}
+                className={`flex min-h-12 items-center gap-3 rounded-[var(--ui-radius)] px-3 py-2 ${me ? "bg-ui-primary text-ui-primary-text" : "box"}`}
               >
-                <span className="w-9 shrink-0 text-center text-xl font-black italic">{MEDALS[e.rank - 1] ?? e.rank}</span>
-                <span className={`min-w-0 flex-1 truncate text-lg font-bold ${me ? "" : "text-outline-sm"}`}>
+                <span className="w-9 shrink-0 text-center text-2xl font-black">{MEDALS[e.rank - 1] ?? e.rank}</span>
+                <span className="min-w-0 flex-1 truncate text-xl font-extrabold normal-case">
                   {e.name}{me && e.name.toLowerCase() !== "tu" && " (tu)"}
                 </span>
-                <span className={`text-lg font-black italic tabular-nums ${me ? "" : "text-outline-sm"}`}>{fmt(e.score)}</span>
+                <span className={`text-2xl font-black tabular-nums ${me ? "" : "text-ui-accent"}`}>{fmt(e.score)}</span>
               </li>
             );
           })}

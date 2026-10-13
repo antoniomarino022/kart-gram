@@ -40,9 +40,16 @@ export function ScorePopups({ bus }: { bus: PopupBus }) {
       <div
         key={popup.id}
         onAnimationEnd={() => setPopup((cur) => (cur?.id === popup.id ? null : cur))}
-        className="animate-score-popup absolute text-4xl font-black italic whitespace-nowrap text-white"
+        // box scuro traslucido: il testo resta leggibile anche sui cieli chiari (Ice, Desert)
+        className="box animate-score-popup absolute px-3 py-1 text-4xl leading-none font-black whitespace-nowrap"
       >
-        {popup.kind === "drift" ? `+${n}` : popup.kind === "nearMiss" ? `NEAR MISS +${n}` : "BOOST!"}
+        {popup.kind === "drift" ? (
+          <span className="text-ui-accent">+{n}</span>
+        ) : popup.kind === "nearMiss" ? (
+          <>Near miss <span className="text-ui-accent">+{n}</span></>
+        ) : (
+          <span className="text-ui-accent">Boost!</span>
+        )}
       </div>
     </div>
   );

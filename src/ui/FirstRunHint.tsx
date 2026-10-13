@@ -21,11 +21,11 @@ export function FirstRunHint() {
   return (
     <div className="animate-hint pointer-events-none absolute inset-0 flex" onAnimationEnd={() => setShow(false)} aria-hidden>
       <div className="flex flex-1 items-center justify-center bg-white/10">
-        <span className="text-2xl font-black italic text-outline-sm">◀ SINISTRA</span>
+        <span className="box px-3 py-1.5 text-2xl font-black text-ui-accent">◀ SINISTRA</span>
       </div>
       <div className="w-0.5 bg-white/40" />
       <div className="flex flex-1 items-center justify-center bg-white/10">
-        <span className="text-2xl font-black italic text-outline-sm">DESTRA ▶</span>
+        <span className="box px-3 py-1.5 text-2xl font-black text-ui-accent">DESTRA ▶</span>
       </div>
     </div>
   );

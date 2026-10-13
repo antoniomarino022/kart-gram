@@ -57,15 +57,15 @@ export function GameOver({ run, profile, unsaved, busy, onRevive, onRetry, onMen
           <div className="box flex w-full flex-col gap-2 p-3">
             <div className="text-center text-xl font-extrabold">Continua la corsa?</div>
             <div className="grid grid-cols-2 gap-2">
-              <button type="button" disabled={busy || profile.coins < REVIVE_PRICE.coins} onClick={() => onRevive("coins")} className="btn btn-primary px-1 text-lg whitespace-nowrap">
+              <button type="button" disabled={busy || profile.coins < REVIVE_PRICE.coins} onClick={() => onRevive("coins")} aria-label={`Continua con ${REVIVE_PRICE.coins} monete`} className="btn btn-primary px-1 text-lg whitespace-nowrap">
                 <CoinIcon size={18} />{fmt(REVIVE_PRICE.coins)}
               </button>
-              <button type="button" disabled={busy} onClick={() => onRevive("stars")} className="btn btn-stars px-1 text-lg whitespace-nowrap">
+              <button type="button" disabled={busy} onClick={() => onRevive("stars")} aria-label={`Continua con ${REVIVE_PRICE.stars} Stelle`} className="btn btn-stars px-1 text-lg whitespace-nowrap">
                 ⭐ {REVIVE_PRICE.stars}
               </button>
             </div>
             {profile.revives > 0 && (
-              <button type="button" disabled={busy} onClick={() => onRevive("owned")} className="btn btn-primary text-lg">
+              <button type="button" disabled={busy} onClick={() => onRevive("owned")} aria-label="Usa un revive" className="btn btn-primary text-lg">
                 Usa revive ({profile.revives})
               </button>
             )}

@@ -1,3 +1,5 @@
+import { hapticsGateOpen } from "./hapticsGate";
+
 type InvoiceStatus = "paid" | "cancelled" | "failed" | "pending";
 
 interface TgWebApp {
@@ -39,7 +41,9 @@ export function initTelegram() {
 export const getInitData = () => tg()?.initData ?? "";
 export const getTelegramUser = () => tg()?.initDataUnsafe.user ?? null;
 
+/** Vibrazione Telegram; tace se il giocatore l'ha spenta (vedi hapticsGate). */
 export function haptic(kind: "light" | "medium" | "heavy" | "success" | "error") {
+  if (!hapticsGateOpen()) return;
   const h = tg()?.HapticFeedback;
   if (!h) return;
   if (kind === "success" || kind === "error") h.notificationOccurred(kind);

@@ -20,7 +20,7 @@ import { buildLoadout, loadoutKey } from "./loadout";
 import { Menu } from "./Menu";
 import { Shop } from "./Shop";
 import { createProfileTracker } from "./profileSync";
-import { uiHaptic } from "./settings";
+import { hapticsEnabled, uiHaptic } from "./settings";
 import { Toast, useToast } from "./Toast";
 import { uiPalette, uiVars } from "./uiPalette";
 
@@ -74,6 +74,7 @@ export default function GameApp() {
 
   const load = useCallback(() => {
     initTelegram();
+    hapticsEnabled(); // carica la preferenza vibrazione nel gate prima della prima partita
     // il catalogo è facoltativo (spec: senza catalogo lo shop è disabilitato), il profilo no
     const catalog = backend.getCatalog().then(
       (c) => ({ catalog: c, catalogOk: true }),

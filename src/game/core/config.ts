@@ -22,7 +22,7 @@ export const CONFIG = {
   iceGrip: 0.7,
   kartHalfWidth: 0.5,
   road: { width: 7, narrowWidth: 4.5, wideBonus: 3, startStraight: 60, narrowChance: 0.2, straightChance: 0.4 },
-  curve: { minRadius: 12, absMinRadius: 9.5, maxRadius: 24, minAngle: Math.PI / 4, maxAngle: Math.PI / 2, headingLimit: 1.4 },
+  curve: { minRadius: 16, absMinRadius: 13, maxRadius: 24, minAngle: Math.PI / 4, maxAngle: Math.PI / 2, headingLimit: 1.4 },
   spawn: { safeStart: 60, baseSpacing: 30, spacingPerBiome: 3, minSpacing: 12, coinChance: 0.6, powerupChance: 0.15, boostChance: 0.3 },
   fallDuration: 1,
   /** Vite: ogni urto con un ostacolo ne toglie una, a 0 il kart si schianta (crashDuration s) e la partita finisce. */

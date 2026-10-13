@@ -157,7 +157,7 @@ describe("sim", () => {
   });
 
   it("the road is drivable at max combo speed: the bot survives 1500m", () => {
-    for (const seed of [1, 2, 3]) {
+    for (const seed of [1, 2, 3, 4, 5]) {
       const st = createGame(seed, undefined, { spawnItems: false });
       while (st.tick < 60 * 60 * 3 && st.phase !== "over" && st.kart.s < 1600) {
         st.comboPoints = CONFIG.comboStep * 10;

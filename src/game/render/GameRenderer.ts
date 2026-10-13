@@ -199,6 +199,20 @@ export class GameRenderer {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /**
+   * Compila subito gli shader di tutto ciò che è ancora nascosto (effetti, power-up...): così il primo urto o la
+   * prima raccolta non causano uno scatto mentre WebGL compila il programma. Da chiamare una volta a inizio partita.
+   */
+  warmUp() {
+    const hidden: THREE.Object3D[] = [];
+    this.scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+    try {
+      this.renderer.compile(this.scene, this.camera);
+    } finally {
+      for (const o of hidden) o.visible = false;
+    }
+  }
+
   onEvent(e: GameEvent, state: GameState) {
     this.fx.onEvent(e, state);
     if (e.type === "driftEnd" && e.seconds >= 1.5) this.trail.burst();

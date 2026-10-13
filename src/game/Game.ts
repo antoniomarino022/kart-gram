@@ -87,6 +87,7 @@ export class Game {
       ro.observe(this.canvas);
       this.cleanups.push(() => ro.disconnect());
     }
+    this.renderer.warmUp();
     this.last = performance.now();
     this.raf = requestAnimationFrame(this.frame);
   }

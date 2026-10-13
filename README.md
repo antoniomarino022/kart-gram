@@ -21,10 +21,11 @@ Comandi:
 - **Telefono:** tieni premuto sulla metà sinistra dello schermo per curvare a sinistra, sulla metà destra per curvare a destra. Rilascia per andare dritto.
 - **PC:** click sinistro tenuto premuto sulle due metà dello schermo, oppure **←/→** o **A/D**.
 - Il bottone ❚❚ in alto a destra mette in pausa. Il gioco va in pausa da solo anche quando l'app passa in background.
+- Il bottone in alto a destra nel menu accende o spegne la vibrazione.
 
 ## Come si gioca
 
-Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida. Quando arriva una curva tieni premuto dalla parte giusta (sinistra o destra) e il kart derapa da quella parte. Rilascia per andare dritto. Se esci dalla strada cadi nel vuoto e la partita finisce subito. Hai 3 vite: ogni urto con un ostacolo ne toglie una e a 0 il kart si schianta.
+Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida. Quando arriva una curva tieni premuto dalla parte giusta (sinistra o destra) e il kart derapa da quella parte. Rilascia per andare dritto. Se esci dalla strada cadi nel vuoto e la partita finisce subito. Hai 3 vite, mostrate come cuori in alto a sinistra: ogni urto con un ostacolo ne toglie una e a 0 il kart si schianta. A fine partita il game over dice se sei caduto o se il kart è distrutto.
 
 - **Score:** distanza, derapate lunghe, linea perfetta (vicino al bordo interno della curva) e near-miss con gli ostacoli. La **combo** (fino a 5×) moltiplica i punti e si azzera se colpisci un ostacolo.
 - **Monete:** raccoglile sulla strada e spendile nel **Garage** per kart, vernici, ruote, scie e potenziamenti.

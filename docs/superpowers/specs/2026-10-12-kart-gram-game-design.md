@@ -35,7 +35,7 @@ Una partita dura in genere 45–90 secondi e il restart è istantaneo.
 - La velocità base è 22 m/s e aumenta di 3 m/s a ogni bioma, fino a 40 m/s.
 - La **combo** rende più veloci: +12% per ogni livello sopra x1 (x5 = +48%). Turbo e pedane boost si moltiplicano sopra. Un urto azzera la combo, quindi il kart rallenta.
 - La velocità cambia in modo graduale: sale di 8 m/s² e scende di 24 m/s².
-- Superato il tetto la velocità del bioma resta ferma, ma le curve si fanno più strette e gli ostacoli più fitti.
+- Le curve hanno raggio tra 16 e 24 m. Superato il tetto la velocità del bioma resta ferma, ma le curve si fanno più strette (fino a 13 m) e gli ostacoli più fitti.
 
 ### Vite e fine partita
 - Si parte con **3 vite**. Ogni urto con un ostacolo (cono, barriera, kart rivale) toglie una vita, rallenta e azzera la combo.
@@ -85,11 +85,15 @@ I power-up si raccolgono passandoci sopra e si attivano da soli.
 - La partita con revive viene inviata con `revived: true`. Il backend decide se tenerla fuori dalle classifiche.
 
 ### HUD e feedback
-- In alto: score, best e combo. Gli indicatori dei power-up attivi sono sotto.
-- Vibrazione tramite l'HapticFeedback di Telegram su:
-  - inizio di un drift (leggera);
-  - collisione (media);
-  - nuovo record (notifica di successo).
+- In alto a sinistra: best, score e cuori delle vite. In alto a destra: combo, pausa e monete. Gli indicatori dei power-up attivi (e del boost) sono sotto.
+- I colori della UI seguono il bioma (giallo, arancio, ciano, rosa); menu, garage e shop usano quelli di Sky City.
+- Alla prima partita le due metà dello schermo mostrano per ~3 s "◀ SINISTRA" / "DESTRA ▶".
+- Il game over dice il motivo: "Sei caduto" o "Kart distrutto" (vite finite).
+- Effetti grafici su urti (detriti e lampo), raccolte, near-miss, boost e alta velocità (linee di velocità), con un piccolo colpo di camera.
+- Vibrazione tramite l'HapticFeedback di Telegram, disattivabile dal menu:
+  - inizio di un drift, power-up, scudo usato e boost (leggera);
+  - collisione (media); caduta e schianto (forte);
+  - game over (errore) e nuovo record (successo).
 
 ### Fuori dalla prima versione
 Missioni, season pass, Daily Run e sfide tra amici. Il seed le rende possibili più avanti.

@@ -26,7 +26,7 @@ export interface BiomePalette {
 
 export const BIOMES: BiomePalette[] = [
   {
-    name: "Sky City", sky: "#3f93e0", horizon: "#a6dcf7", ground: "#1f5bb0",
+    name: "Sky City", sky: "#3f93e0", horizon: "#a6dcf7", ground: "#173f85",
     road: "#2b5cc4", roadLine: "#8db4f5", roadEdge: "#6f9de6",
     buildings: ["#8fc6f0", "#6aa6e6", "#4f88d6"], light: "#e6f4ff", intensity: 1, boost: "#8fe3ff",
   },
@@ -36,7 +36,7 @@ export const BIOMES: BiomePalette[] = [
     buildings: ["#f4c38e", "#e6a16b", "#d1834f"], light: "#fff0dc", intensity: 1, boost: "#ffd9a0",
   },
   {
-    name: "Ice", sky: "#7fc0ea", horizon: "#eaf7ff", ground: "#3d8fcf",
+    name: "Ice", sky: "#7fc0ea", horizon: "#eaf7ff", ground: "#2a6fae",
     road: "#5b98c6", roadLine: "#dff2ff", roadEdge: "#a6d2f0",
     buildings: ["#e2f3fd", "#c2e2f7", "#9fcbec"], light: "#ffffff", intensity: 1, boost: "#e6fbff",
   },

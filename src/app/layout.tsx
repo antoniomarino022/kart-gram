@@ -23,11 +23,13 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+import QueryProvider from "@/providers/QueryProvider";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="it" className={`${barlow.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="h-full overflow-hidden">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       </body>
     </html>

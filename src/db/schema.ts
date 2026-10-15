@@ -1,14 +1,23 @@
 import { pgEnum, pgTable, serial, text, varchar, integer, boolean, timestamp, bigint, date, unique, check, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import {
+  UnlockType,
+  ReferralStatus,
+  RunStatus,
+  LeaderboardType,
+  CoinReason,
+  PaymentStatus,
+  AdPurpose,
+} from "@/types/enums";
 
 // enum
-export const unlockTypeEnum = pgEnum("unlock_type_enum", ["FREE", "COINS", "STARS", "SHARES", "ADS"]);
-export const referralStatusEnum = pgEnum("referral_status_enum", ["PENDING", "QUALIFIED"]);
-export const runStatusEnum = pgEnum("run_status_enum", ["RUNNING", "PAUSED", "FINISHED", "ABANDONED"]);
-export const leaderboardTypeEnum = pgEnum("leaderboard_type_enum", ["TOP_SCORE", "MOST_LOYAL"]);
-export const coinReasonEnum = pgEnum("coin_reason_enum", ["RUN", "PURCHASE", "MONTHLY_REWARD", "AD", "REFERRAL", "REVIVE"]);
-export const paymentStatusEnum = pgEnum("payment_status_enum", ["PENDING", "COMPLETED", "FAILED"]);
-export const adPurposeEnum = pgEnum("ad_purpose_enum", ["REVIVE", "UNLOCK_ITEM", "COIN_BONUS"]);
+export const unlockTypeEnum = pgEnum("unlock_type_enum", Object.values(UnlockType) as [string, ...string[]]);
+export const referralStatusEnum = pgEnum("referral_status_enum", Object.values(ReferralStatus) as [string, ...string[]]);
+export const runStatusEnum = pgEnum("run_status_enum", [RunStatus.RUNNING, RunStatus.PAUSED, RunStatus.FINISHED, RunStatus.ABANDONED]);
+export const leaderboardTypeEnum = pgEnum("leaderboard_type_enum", Object.values(LeaderboardType) as [string, ...string[]]);
+export const coinReasonEnum = pgEnum("coin_reason_enum", Object.values(CoinReason) as [string, ...string[]]);
+export const paymentStatusEnum = pgEnum("payment_status_enum", Object.values(PaymentStatus) as [string, ...string[]]);
+export const adPurposeEnum = pgEnum("ad_purpose_enum", Object.values(AdPurpose) as [string, ...string[]]);
 
 // tables
 export const cars = pgTable("Cars", {
@@ -106,11 +115,10 @@ export const gameRuns = pgTable("Game_Runs", {
   carId: integer("car_id").notNull().references(() => cars.id),
   characterId: integer("character_id").notNull().references(() => characters.id),
   mapId: integer("map_id").notNull().references(() => maps.id),
-  status: runStatusEnum("status").default("RUNNING").notNull(),
+  status: runStatusEnum("status").default(RunStatus.RUNNING).notNull(),
   startingLives: integer("starting_lives").notNull(), // Starting lives at run begin (car base + active perks)
   revivesUsed: integer("revives_used").default(0).notNull(), // Number of revives used during the run (via ads or coins)
   score: integer("score").default(0).notNull(),
-  distanceMeters: integer("distance_meters").default(0).notNull(),
   coinsCollected: integer("coins_collected").default(0).notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).defaultNow(),
   endedAt: timestamp("ended_at", { withTimezone: true }),

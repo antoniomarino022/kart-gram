@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const userSchema = z.object({
+export const userResponseSchema = z.object({
   id: z.number().int().positive(),
   telegramId: z.number().int(),
   username: z.string().max(100).nullable(),
@@ -28,9 +28,6 @@ export const updateUserSchema = z.object({
   equippedMapId: z.number().int().optional().nullable(),
 });
 
-export const userResponseSchema = userSchema;
-
-export type User = z.infer<typeof userSchema>;
+export type UserResponse = z.infer<typeof userResponseSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type UserResponse = z.infer<typeof userResponseSchema>;

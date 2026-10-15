@@ -2,7 +2,7 @@ import { z } from "zod";
 import { adPurposeEnumSchema, paymentStatusEnumSchema } from "./enums";
 import { PaymentStatus } from "@/types/enums";
 
-export const adViewSchema = z.object({
+export const adViewResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   purpose: adPurposeEnumSchema,
@@ -25,7 +25,7 @@ export const recordAdViewSchema = z.object({
   rewardCoins: z.number().int().default(0).optional(),
 });
 
-export const paymentSchema = z.object({
+export const paymentResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   carId: z.number().int().positive().nullable(),
@@ -45,10 +45,12 @@ export const createPaymentSchema = z.object({
   telegramChargeId: z.string().max(255),
 });
 
-export const adViewResponseSchema = adViewSchema;
-export const paymentResponseSchema = paymentSchema;
+export const adViewsListResponseSchema = z.array(adViewResponseSchema);
+export const paymentsListResponseSchema = z.array(paymentResponseSchema);
 
-export type AdView = z.infer<typeof adViewSchema>;
+export type AdViewResponse = z.infer<typeof adViewResponseSchema>;
+export type AdViewsListResponse = z.infer<typeof adViewsListResponseSchema>;
 export type RecordAdViewInput = z.infer<typeof recordAdViewSchema>;
-export type Payment = z.infer<typeof paymentSchema>;
+export type PaymentResponse = z.infer<typeof paymentResponseSchema>;
+export type PaymentsListResponse = z.infer<typeof paymentsListResponseSchema>;
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;

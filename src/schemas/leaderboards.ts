@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { leaderboardTypeEnumSchema } from "./enums";
 
-export const monthlyLeaderboardSchema = z.object({
+export const monthlyLeaderboardResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   month: z.string(), // YYYY-MM-DD
@@ -14,7 +14,7 @@ export const monthlyLeaderboardSchema = z.object({
   adsWatchedMonth: z.number().int().default(0),
 });
 
-export const monthlyRewardsLogSchema = z.object({
+export const monthlyRewardsLogResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   month: z.string(),
@@ -25,8 +25,10 @@ export const monthlyRewardsLogSchema = z.object({
   claimedAt: z.union([z.string(), z.date()]).nullable(),
 });
 
-export const monthlyLeaderboardsListResponseSchema = z.array(monthlyLeaderboardSchema);
-export const monthlyRewardsLogListResponseSchema = z.array(monthlyRewardsLogSchema);
+export const monthlyLeaderboardsListResponseSchema = z.array(monthlyLeaderboardResponseSchema);
+export const monthlyRewardsLogListResponseSchema = z.array(monthlyRewardsLogResponseSchema);
 
-export type MonthlyLeaderboard = z.infer<typeof monthlyLeaderboardSchema>;
-export type MonthlyRewardsLog = z.infer<typeof monthlyRewardsLogSchema>;
+export type MonthlyLeaderboardResponse = z.infer<typeof monthlyLeaderboardResponseSchema>;
+export type MonthlyRewardsLogResponse = z.infer<typeof monthlyRewardsLogResponseSchema>;
+export type MonthlyLeaderboardsListResponse = z.infer<typeof monthlyLeaderboardsListResponseSchema>;
+export type MonthlyRewardsLogListResponse = z.infer<typeof monthlyRewardsLogListResponseSchema>;

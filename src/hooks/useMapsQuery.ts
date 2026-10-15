@@ -1,7 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getMaps, getMapById } from "@/app/actions/mapActions";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getMaps, getMapById, equipMap } from "@/app/actions/mapActions";
+import { EquipMapInput } from "@/schemas/maps";
 
 export const mapQueryKeys = {
   all: ["maps"] as const,
@@ -26,5 +27,20 @@ export function useMap(id: number) {
     queryKey: mapQueryKeys.detail(id),
     queryFn: () => getMapById(id),
     enabled: typeof id === "number" && id > 0,
+  });
+}
+
+/**
+ * Hook per selezionare una mappa
+ * Invalida automaticamente i dati dell'utente per riflettere subito la mappa selezionata
+ */
+export function useEquipMap() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: EquipMapInput) => equipMap(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+    },
   });
 }

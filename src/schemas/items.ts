@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const userItemSchema = z.object({
+export const userItemResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   carId: z.number().int().positive().nullable(),
@@ -9,7 +9,7 @@ export const userItemSchema = z.object({
   unlockedAt: z.union([z.string(), z.date()]).nullable(),
 });
 
-export const unlockProgressSchema = z.object({
+export const unlockProgressResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   carId: z.number().int().positive().nullable(),
@@ -19,8 +19,10 @@ export const unlockProgressSchema = z.object({
   updatedAt: z.union([z.string(), z.date()]).nullable(),
 });
 
-export const userItemsListResponseSchema = z.array(userItemSchema);
-export const unlockProgressListResponseSchema = z.array(unlockProgressSchema);
+export const userItemsListResponseSchema = z.array(userItemResponseSchema);
+export const unlockProgressListResponseSchema = z.array(unlockProgressResponseSchema);
 
-export type UserItem = z.infer<typeof userItemSchema>;
-export type UnlockProgress = z.infer<typeof unlockProgressSchema>;
+export type UserItemResponse = z.infer<typeof userItemResponseSchema>;
+export type UnlockProgressResponse = z.infer<typeof unlockProgressResponseSchema>;
+export type UserItemsListResponse = z.infer<typeof userItemsListResponseSchema>;
+export type UnlockProgressListResponse = z.infer<typeof unlockProgressListResponseSchema>;

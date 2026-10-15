@@ -2,7 +2,7 @@ import { z } from "zod";
 import { runStatusEnumSchema } from "./enums";
 import { RunStatus } from "@/types/enums";
 
-export const gameRunSchema = z.object({
+export const gameRunResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   carId: z.number().int().positive(),
@@ -61,14 +61,13 @@ export const abandonGameRunSchema = z.object({
 // Compatibilità con codice precedente
 export const stopGameRunSchema = pauseGameRunSchema;
 
-export const gameRunResponseSchema = gameRunSchema;
-export const gameRunsListResponseSchema = z.array(gameRunSchema);
+export const gameRunsListResponseSchema = z.array(gameRunResponseSchema);
 
-export type GameRun = z.infer<typeof gameRunSchema>;
+export type GameRunResponse = z.infer<typeof gameRunResponseSchema>;
+export type GameRunsListResponse = z.infer<typeof gameRunsListResponseSchema>;
 export type StartGameRunInput = z.infer<typeof startGameRunSchema>;
 export type PauseGameRunInput = z.infer<typeof pauseGameRunSchema>;
 export type ResumeGameRunInput = z.infer<typeof resumeGameRunSchema>;
 export type FinishGameRunInput = z.infer<typeof finishGameRunSchema>;
 export type AbandonGameRunInput = z.infer<typeof abandonGameRunSchema>;
 export type StopGameRunInput = z.infer<typeof stopGameRunSchema>;
-export type GameRunResponse = z.infer<typeof gameRunResponseSchema>;

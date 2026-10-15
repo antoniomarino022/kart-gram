@@ -17,181 +17,212 @@ import {
 } from "@/schemas/runs";
 import { RunStatus } from "@/types/enums";
 import { and, eq, sql } from "drizzle-orm";
+import { ZodError } from "zod";
 
 /**
- *  Avvia una nuova sessione di gioco (Stato: RUNNING)
+ * Helper per gestire gli errori in modo pulito e coerente
+ */
+function handleActionError(error: unknown, defaultMessage: string): never {
+  if (error instanceof ZodError) {
+    const errorDetails = error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join(", ");
+    throw new Error(`Dati non validi: ${errorDetails}`);
+  }
+
+  if (error instanceof Error) {
+    throw error;
+  }
+
+  throw new Error(defaultMessage);
+}
+
+/**
+ * Avvia una nuova sessione di gioco (Stato: RUNNING)
  */
 export async function startGameRun(data: StartGameRunInput): Promise<GameRunResponse> {
-  const validated = startGameRunSchema.parse(data);
+  try {
+    const validated = startGameRunSchema.parse(data);
 
-  const [run] = await db
-    .insert(gameRuns)
-    .values({
-      userId: validated.userId,
-      carId: validated.carId,
-      characterId: validated.characterId,
-      mapId: validated.mapId,
-      startingLives: validated.startingLives,
-      status: RunStatus.RUNNING,
-    })
-    .returning();
+    const [run] = await db
+      .insert(gameRuns)
+      .values({
+        userId: validated.userId,
+        carId: validated.carId,
+        characterId: validated.characterId,
+        mapId: validated.mapId,
+        startingLives: validated.startingLives,
+        status: RunStatus.RUNNING,
+      })
+      .returning();
 
-  return run;
+    return run;
+  } catch (error) {
+    handleActionError(error, "Impossibile avviare la sessione di gioco.");
+  }
 }
 
 /**
- * 2. Mette in pausa una sessione di gioco attiva (Stato: PAUSED)
+ * Mette in pausa una sessione di gioco attiva (Stato: PAUSED)
  */
 export async function pauseGameRun(data: PauseGameRunInput): Promise<GameRunResponse> {
-  const validated = pauseGameRunSchema.parse(data);
+  try {
+    const validated = pauseGameRunSchema.parse(data);
 
-  const [run] = await db
-    .select()
-    .from(gameRuns)
-    .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
-    .limit(1);
+    const [run] = await db
+      .select()
+      .from(gameRuns)
+      .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
+      .limit(1);
 
-  if (!run) {
-    throw new Error("No game run found for this user.");
+    if (!run) {
+      throw new Error("Nessuna partita trovata per questo utente.");
+    }
+
+    if (run.status === RunStatus.PAUSED) {
+      throw new Error("La partita è già in pausa.");
+    }
+
+    if (run.status !== RunStatus.RUNNING) {
+      throw new Error(`Impossibile mettere in pausa una partita in stato '${run.status}'.`);
+    }
+
+    const [updatedRun] = await db
+      .update(gameRuns)
+      .set({
+        status: RunStatus.PAUSED,
+        score: validated.score,
+        coinsCollected: validated.coinsCollected,
+      })
+      .where(eq(gameRuns.id, run.id))
+      .returning();
+
+    return updatedRun;
+  } catch (error) {
+    handleActionError(error, "Impossibile mettere in pausa la sessione di gioco.");
   }
-
-  if (run.status === RunStatus.PAUSED) {
-    throw new Error("The game run is already paused.");
-  }
-
-  if (run.status !== RunStatus.RUNNING) {
-    throw new Error(`Cannot pause a game run in '${run.status}' state.`);
-  }
-
-  const [updatedRun] = await db
-    .update(gameRuns)
-    .set({
-      status: RunStatus.PAUSED,
-      score: validated.score,
-      coinsCollected: validated.coinsCollected,
-    })
-    .where(eq(gameRuns.id, run.id))
-    .returning();
-
-  return updatedRun;
 }
 
 /**
- *  Riprende una sessione precedentemente messa in pausa (Stato: RUNNING)
+ * Riprende una sessione precedentemente messa in pausa (Stato: RUNNING)
  */
 export async function resumeGameRun(data: ResumeGameRunInput): Promise<GameRunResponse> {
-  const validated = resumeGameRunSchema.parse(data);
+  try {
+    const validated = resumeGameRunSchema.parse(data);
 
-  const [run] = await db
-    .select()
-    .from(gameRuns)
-    .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
-    .limit(1);
+    const [run] = await db
+      .select()
+      .from(gameRuns)
+      .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
+      .limit(1);
 
-  if (!run) {
-    throw new Error("No game run found for this user.");
+    if (!run) {
+      throw new Error("Nessuna partita trovata per questo utente.");
+    }
+
+    if (run.status !== RunStatus.PAUSED) {
+      throw new Error(`Impossibile riprendere una partita in stato '${run.status}'. Deve essere in PAUSED.`);
+    }
+
+    const [updatedRun] = await db
+      .update(gameRuns)
+      .set({
+        status: RunStatus.RUNNING,
+      })
+      .where(eq(gameRuns.id, run.id))
+      .returning();
+
+    return updatedRun;
+  } catch (error) {
+    handleActionError(error, "Impossibile riprendere la sessione di gioco.");
   }
-
-  if (run.status !== RunStatus.PAUSED) {
-    throw new Error(`Cannot resume a game run in '${run.status}' state. It must be PAUSED.`);
-  }
-
-  const [updatedRun] = await db
-    .update(gameRuns)
-    .set({
-      status: RunStatus.RUNNING,
-    })
-    .where(eq(gameRuns.id, run.id))
-    .returning();
-
-  return updatedRun;
 }
 
 /**
  * Termina la partita con Game Over (Stato: FINISHED)
  */
 export async function finishGameRun(data: FinishGameRunInput): Promise<GameRunResponse> {
-  const validated = finishGameRunSchema.parse(data);
+  try {
+    const validated = finishGameRunSchema.parse(data);
 
+    const [run] = await db
+      .select()
+      .from(gameRuns)
+      .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
+      .limit(1);
 
-  const [run] = await db
-    .select()
-    .from(gameRuns)
-    .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
-    .limit(1);
+    if (!run) {
+      throw new Error("Nessuna partita trovata per questo utente.");
+    }
 
-  if (!run) {
-    throw new Error("No game run found for this user.");
-  }
+    if (run.status === RunStatus.FINISHED || run.status === RunStatus.ABANDONED) {
+      throw new Error(`La partita è già terminata (${run.status}).`);
+    }
 
-  //  la partita non deve essere già conclusa o abbandonata
-  if (run.status === RunStatus.FINISHED || run.status === RunStatus.ABANDONED) {
-    throw new Error(`The game run has already ended (${run.status}).`);
-  }
+    if (validated.remainingLives > 0) {
+      throw new Error("Impossibile attivare il Game Over finché il giocatore ha vite disponibili.");
+    }
 
-  //  il Game Over è consentito solo se tutte le vite sono esaurite
-  if (validated.remainingLives > 0) {
-    throw new Error("Cannot trigger Game Over while the player still has remaining lives.");
-  }
-
-  // Aggiorna lo stato della sessione a FINISHED usando solo i dati validati
-  const [updatedRun] = await db
-    .update(gameRuns)
-    .set({
-      status: RunStatus.FINISHED,
-      score: validated.score,
-      coinsCollected: validated.coinsCollected,
-      revivesUsed: validated.revivesUsed,
-      endedAt: new Date(),
-    })
-    .where(eq(gameRuns.id, run.id))
-    .returning();
-
-  // Accredita le monete raccolte e aggiorna l'all-time high score se superato
-  if (validated.coinsCollected > 0 || validated.score > 0) {
-    await db
-      .update(users)
+    const [updatedRun] = await db
+      .update(gameRuns)
       .set({
-        coins: sql`${users.coins} + ${validated.coinsCollected}`,
-        allTimeHighScore: sql`GREATEST(${users.allTimeHighScore}, ${validated.score})`,
+        status: RunStatus.FINISHED,
+        score: validated.score,
+        coinsCollected: validated.coinsCollected,
+        revivesUsed: validated.revivesUsed,
+        endedAt: new Date(),
       })
-      .where(eq(users.id, validated.userId));
-  }
+      .where(eq(gameRuns.id, run.id))
+      .returning();
 
-  return updatedRun;
+    if (validated.coinsCollected > 0 || validated.score > 0) {
+      await db
+        .update(users)
+        .set({
+          coins: sql`${users.coins} + ${validated.coinsCollected}`,
+          allTimeHighScore: sql`GREATEST(${users.allTimeHighScore}, ${validated.score})`,
+        })
+        .where(eq(users.id, validated.userId));
+    }
+
+    return updatedRun;
+  } catch (error) {
+    handleActionError(error, "Impossibile terminare la sessione di gioco.");
+  }
 }
 
 /**
- *  Abbandona la partita (es. ritorno al menu o uscita prematura) (Stato: ABANDONED)
+ * Abbandona la partita (Stato: ABANDONED)
  */
 export async function abandonGameRun(data: AbandonGameRunInput): Promise<GameRunResponse> {
-  const validated = abandonGameRunSchema.parse(data);
+  try {
+    const validated = abandonGameRunSchema.parse(data);
 
-  const [run] = await db
-    .select()
-    .from(gameRuns)
-    .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
-    .limit(1);
+    const [run] = await db
+      .select()
+      .from(gameRuns)
+      .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
+      .limit(1);
 
-  if (!run) {
-    throw new Error("No game run found for this user.");
+    if (!run) {
+      throw new Error("Nessuna partita trovata per questo utente.");
+    }
+
+    if (run.status === RunStatus.FINISHED || run.status === RunStatus.ABANDONED) {
+      throw new Error(`La partita è già terminata (${run.status}).`);
+    }
+
+    const [updatedRun] = await db
+      .update(gameRuns)
+      .set({
+        status: RunStatus.ABANDONED,
+        score: validated.score,
+        coinsCollected: validated.coinsCollected,
+        endedAt: new Date(),
+      })
+      .where(eq(gameRuns.id, run.id))
+      .returning();
+
+    return updatedRun;
+  } catch (error) {
+    handleActionError(error, "Impossibile abbandonare la sessione di gioco.");
   }
-
-  if (run.status === RunStatus.FINISHED || run.status === RunStatus.ABANDONED) {
-    throw new Error(`The game run has already ended (${run.status}).`);
-  }
-
-  const [updatedRun] = await db
-    .update(gameRuns)
-    .set({
-      status: RunStatus.ABANDONED,
-      score: validated.score,
-      coinsCollected: validated.coinsCollected,
-      endedAt: new Date(),
-    })
-    .where(eq(gameRuns.id, run.id))
-    .returning();
-
-  return updatedRun;
 }
-

@@ -11,13 +11,45 @@ import {
 } from "@/types/enums";
 
 // enum
-export const unlockTypeEnum = pgEnum("unlock_type_enum", Object.values(UnlockType) as [string, ...string[]]);
-export const referralStatusEnum = pgEnum("referral_status_enum", Object.values(ReferralStatus) as [string, ...string[]]);
-export const runStatusEnum = pgEnum("run_status_enum", [RunStatus.RUNNING, RunStatus.PAUSED, RunStatus.FINISHED, RunStatus.ABANDONED]);
-export const leaderboardTypeEnum = pgEnum("leaderboard_type_enum", Object.values(LeaderboardType) as [string, ...string[]]);
-export const coinReasonEnum = pgEnum("coin_reason_enum", Object.values(CoinReason) as [string, ...string[]]);
-export const paymentStatusEnum = pgEnum("payment_status_enum", Object.values(PaymentStatus) as [string, ...string[]]);
-export const adPurposeEnum = pgEnum("ad_purpose_enum", Object.values(AdPurpose) as [string, ...string[]]);
+export const unlockTypeEnum = pgEnum("unlock_type_enum", [
+  UnlockType.FREE,
+  UnlockType.COINS,
+  UnlockType.STARS,
+  UnlockType.SHARES,
+  UnlockType.ADS,
+]);
+export const referralStatusEnum = pgEnum("referral_status_enum", [
+  ReferralStatus.PENDING,
+  ReferralStatus.QUALIFIED,
+]);
+export const runStatusEnum = pgEnum("run_status_enum", [
+  RunStatus.RUNNING,
+  RunStatus.PAUSED,
+  RunStatus.FINISHED,
+  RunStatus.ABANDONED,
+]);
+export const leaderboardTypeEnum = pgEnum("leaderboard_type_enum", [
+  LeaderboardType.TOP_SCORE,
+  LeaderboardType.MOST_LOYAL,
+]);
+export const coinReasonEnum = pgEnum("coin_reason_enum", [
+  CoinReason.RUN,
+  CoinReason.PURCHASE,
+  CoinReason.MONTHLY_REWARD,
+  CoinReason.AD,
+  CoinReason.REFERRAL,
+  CoinReason.REVIVE,
+]);
+export const paymentStatusEnum = pgEnum("payment_status_enum", [
+  PaymentStatus.PENDING,
+  PaymentStatus.COMPLETED,
+  PaymentStatus.FAILED,
+]);
+export const adPurposeEnum = pgEnum("ad_purpose_enum", [
+  AdPurpose.REVIVE,
+  AdPurpose.UNLOCK_ITEM,
+  AdPurpose.COIN_BONUS,
+]);
 
 // tables
 export const cars = pgTable("Cars", {
@@ -101,7 +133,7 @@ export const referrals = pgTable("Referrals", {
   id: serial("id").primaryKey(),
   inviterUserId: integer("inviter_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   invitedUserId: integer("invited_user_id").unique().notNull().references(() => users.id, { onDelete: "cascade" }), // Unique: a user can only be referred once
-  status: referralStatusEnum("status").default("PENDING").notNull(), // PENDING (joined), QUALIFIED (met antifraud / played 1st run)
+  status: referralStatusEnum("status").default(ReferralStatus.PENDING).notNull(), // PENDING (joined), QUALIFIED (met antifraud / played 1st run)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   qualifiedAt: timestamp("qualified_at", { withTimezone: true }), // Timestamp when referral was qualified and rewards were distributed
 }, (table) => [
@@ -150,7 +182,7 @@ export const payments = pgTable("Payments", {
   mapId: integer("map_id").references(() => maps.id),
   starsAmount: integer("stars_amount").notNull(), // Amount paid in Telegram Stars
   telegramChargeId: varchar("telegram_charge_id", { length: 255 }).unique().notNull(), // Unique Telegram invoice charge ID (for webhook verification)
-  status: paymentStatusEnum("status").default("PENDING").notNull(),
+  status: paymentStatusEnum("status").default(PaymentStatus.PENDING).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
   check("payments_item_check", sql`num_nonnulls(${table.carId}, ${table.characterId}, ${table.mapId}) = 1`),

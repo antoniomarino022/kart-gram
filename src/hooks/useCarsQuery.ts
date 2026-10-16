@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCars, getCarById, equipCar } from "@/app/actions/carActions";
+import { equipCar } from "@/app/actions/carActions";
 import { EquipCarInput } from "@/schemas/cars";
+import { carService } from "@/services/carService";
 
 export const carQueryKeys = {
   all: ["cars"] as const,
@@ -15,7 +16,7 @@ export const carQueryKeys = {
 export function useCars() {
   return useQuery({
     queryKey: carQueryKeys.all,
-    queryFn: () => getCars(),
+    queryFn: () => carService.getCars(),
   });
 }
 
@@ -25,7 +26,7 @@ export function useCars() {
 export function useCar(id: number) {
   return useQuery({
     queryKey: carQueryKeys.detail(id),
-    queryFn: () => getCarById(id),
+    queryFn: () => carService.getCarById(id),
     enabled: typeof id === "number" && id > 0,
   });
 }

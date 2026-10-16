@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getMaps, getMapById, equipMap } from "@/app/actions/mapActions";
+import { equipMap } from "@/app/actions/mapActions";
 import { EquipMapInput } from "@/schemas/maps";
+import { mapService } from "@/services/mapService";
 
 export const mapQueryKeys = {
   all: ["maps"] as const,
@@ -15,7 +16,7 @@ export const mapQueryKeys = {
 export function useMaps() {
   return useQuery({
     queryKey: mapQueryKeys.all,
-    queryFn: () => getMaps(),
+    queryFn: () => mapService.getMaps(),
   });
 }
 
@@ -25,7 +26,7 @@ export function useMaps() {
 export function useMap(id: number) {
   return useQuery({
     queryKey: mapQueryKeys.detail(id),
-    queryFn: () => getMapById(id),
+    queryFn: () => mapService.getMapById(id),
     enabled: typeof id === "number" && id > 0,
   });
 }

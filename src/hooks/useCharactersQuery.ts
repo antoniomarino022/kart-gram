@@ -1,12 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getCharacters,
-  getCharacterById,
-  equipCharacter,
-} from "@/app/actions/characterActions";
+import { equipCharacter } from "@/app/actions/characterActions";
 import { EquipCharacterInput } from "@/schemas/characters";
+import { characterService } from "@/services/characterService";
 
 export const characterQueryKeys = {
   all: ["characters"] as const,
@@ -19,7 +16,7 @@ export const characterQueryKeys = {
 export function useCharacters() {
   return useQuery({
     queryKey: characterQueryKeys.all,
-    queryFn: () => getCharacters(),
+    queryFn: () => characterService.getCharacters(),
   });
 }
 
@@ -29,7 +26,7 @@ export function useCharacters() {
 export function useCharacter(id: number) {
   return useQuery({
     queryKey: characterQueryKeys.detail(id),
-    queryFn: () => getCharacterById(id),
+    queryFn: () => characterService.getCharacterById(id),
     enabled: typeof id === "number" && id > 0,
   });
 }

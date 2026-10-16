@@ -12,7 +12,7 @@ export const auth = betterAuth({
   baseURL:
     process.env.BETTER_AUTH_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000",
+    process.env.DASHBOARD_URL,  
   user: {
     additionalFields: {
       role: {
@@ -25,12 +25,9 @@ export const auth = betterAuth({
     enabled: true,
   },
   trustedOrigins: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:3002",
-    process.env.DASHBOARD_URL || "",
-    process.env.NEXT_PUBLIC_APP_URL || "",
-    process.env.BETTER_AUTH_URL || "",
+    process.env.DASHBOARD_URL!,
+    process.env.NEXT_PUBLIC_APP_URL!,
+    process.env.BETTER_AUTH_URL!,
   ].filter(Boolean),
   advanced: {
     defaultCookieAttributes: {

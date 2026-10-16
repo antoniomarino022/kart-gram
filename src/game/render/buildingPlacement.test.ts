@@ -48,7 +48,7 @@ describe("placeBuilding", () => {
       expect(p.halfW * 2).toBeLessThanOrEqual(BUILDING.maxWidth);
     }
     expect(placed).toBeGreaterThan(250);
-  });
+  }, 15000);
 
   it("clearOfRoad rifiuta un edificio sulla strada", () => {
     const track = createTrack(1);

@@ -8,6 +8,13 @@
       "when": 1792071204507,
       "tag": "0000_spotty_proudstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792153828731,
+      "tag": "0001_free_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }

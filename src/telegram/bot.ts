@@ -1,6 +1,6 @@
 import { Telegraf, Markup } from "telegraf";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { telegramUsers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const token = process.env.BOT_API_KEY;
@@ -19,12 +19,14 @@ bot.start(async (ctx) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
     // Registra o recupera l'utente nel database
-    const existingUser = await db.query.users.findFirst({
-      where: eq(users.telegramId, telegramId),
-    });
+    const [existingUser] = await db
+      .select()
+      .from(telegramUsers)
+      .where(eq(telegramUsers.telegramId, telegramId))
+      .limit(1);
 
     if (!existingUser) {
-      await db.insert(users).values({
+      await db.insert(telegramUsers).values({
         telegramId,
         username,
       });

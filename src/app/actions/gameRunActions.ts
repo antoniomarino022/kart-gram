@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { gameRuns, users } from "@/db/schema";
+import { gameRuns, telegramUsers } from "@/db/schema";
 import {
   startGameRunSchema,
   pauseGameRunSchema,
@@ -159,12 +159,12 @@ export async function finishGameRun(data: FinishGameRunInput): Promise<GameRunRe
 
     if (validated.coinsCollected > 0 || validated.score > 0) {
       await db
-        .update(users)
+        .update(telegramUsers)
         .set({
-          coins: sql`${users.coins} + ${validated.coinsCollected}`,
-          allTimeHighScore: sql`GREATEST(${users.allTimeHighScore}, ${validated.score})`,
+          coins: sql`${telegramUsers.coins} + ${validated.coinsCollected}`,
+          allTimeHighScore: sql`GREATEST(${telegramUsers.allTimeHighScore}, ${validated.score})`,
         })
-        .where(eq(users.id, validated.userId));
+        .where(eq(telegramUsers.id, validated.userId));
     }
 
     return updatedRun;

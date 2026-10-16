@@ -83,7 +83,7 @@ export const maps = pgTable("Maps", {
 });
 
 
-export const users = pgTable("Users", {
+export const telegramUsers = pgTable("Telegram_Users", {
   id: serial("id").primaryKey(),
   telegramId: bigint("telegram_id", { mode: "number" }).unique().notNull(), // Unique Telegram user ID (bigint mapped to JS number)
   username: varchar("username", { length: 100 }),
@@ -97,10 +97,9 @@ export const users = pgTable("Users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
 export const userItems = pgTable("User_Items", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id, { onDelete: "cascade" }), // Populated only if owned item is a car
   characterId: integer("character_id").references(() => characters.id, { onDelete: "cascade" }), // Populated only if owned item is a character
   mapId: integer("map_id").references(() => maps.id, { onDelete: "cascade" }), // Populated only if owned item is a map
@@ -115,7 +114,7 @@ export const userItems = pgTable("User_Items", {
 
 export const unlockProgress = pgTable("Unlock_Progress", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id, { onDelete: "cascade" }),
   characterId: integer("character_id").references(() => characters.id, { onDelete: "cascade" }),
   mapId: integer("map_id").references(() => maps.id, { onDelete: "cascade" }),
@@ -131,8 +130,8 @@ export const unlockProgress = pgTable("Unlock_Progress", {
 
 export const referrals = pgTable("Referrals", {
   id: serial("id").primaryKey(),
-  inviterUserId: integer("inviter_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  invitedUserId: integer("invited_user_id").unique().notNull().references(() => users.id, { onDelete: "cascade" }), // Unique: a user can only be referred once
+  inviterUserId: integer("inviter_user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
+  invitedUserId: integer("invited_user_id").unique().notNull().references(() => telegramUsers.id, { onDelete: "cascade" }), // Unique: a user can only be referred once
   status: referralStatusEnum("status").default(ReferralStatus.PENDING).notNull(), // PENDING (joined), QUALIFIED (met antifraud / played 1st run)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   qualifiedAt: timestamp("qualified_at", { withTimezone: true }), // Timestamp when referral was qualified and rewards were distributed
@@ -143,7 +142,7 @@ export const referrals = pgTable("Referrals", {
 
 export const gameRuns = pgTable("Game_Runs", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").notNull().references(() => cars.id),
   characterId: integer("character_id").notNull().references(() => characters.id),
   mapId: integer("map_id").notNull().references(() => maps.id),
@@ -161,7 +160,7 @@ export const gameRuns = pgTable("Game_Runs", {
 
 export const adViews = pgTable("Ad_Views", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   purpose: adPurposeEnum("purpose").notNull(), // Ad purpose: REVIVE (in-game revive), UNLOCK_ITEM (unlock progression), COIN_BONUS (free coins)
   carId: integer("car_id").references(() => cars.id, { onDelete: "set null" }),
   characterId: integer("character_id").references(() => characters.id, { onDelete: "set null" }),
@@ -176,7 +175,7 @@ export const adViews = pgTable("Ad_Views", {
 
 export const payments = pgTable("Payments", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id),
   characterId: integer("character_id").references(() => characters.id),
   mapId: integer("map_id").references(() => maps.id),
@@ -192,7 +191,7 @@ export const payments = pgTable("Payments", {
 
 export const coinTransactions = pgTable("Coin_Transactions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(), // Signed value: positive for earning (+100), negative for spend (-500)
   reason: coinReasonEnum("reason").notNull(),
   refId: integer("ref_id"), // Polymorphic reference ID (e.g. runId for RUN, paymentId for PURCHASE)
@@ -204,7 +203,7 @@ export const coinTransactions = pgTable("Coin_Transactions", {
 
 export const monthlyLeaderboards = pgTable("Monthly_Leaderboards", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   month: date("month").notNull(), // First day of the reference month (e.g. 2026-10-01) for historical partitioning
   bestScore: integer("best_score").default(0).notNull(), // Monthly high score for "TOP_SCORE" leaderboard
   loyaltyPoints: integer("loyalty_points").default(0).notNull(), // Loyalty score for "MOST_LOYAL" leaderboard (logins, runs, ads)
@@ -221,7 +220,7 @@ export const monthlyLeaderboards = pgTable("Monthly_Leaderboards", {
 
 export const monthlyRewardsLog = pgTable("Monthly_Rewards_Log", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   month: date("month").notNull(),
   leaderboardType: leaderboardTypeEnum("leaderboard_type").notNull(),
   rankPosition: integer("rank_position").notNull(), // Final rank position (strictly restricted between 1 and 10)
@@ -231,3 +230,6 @@ export const monthlyRewardsLog = pgTable("Monthly_Rewards_Log", {
 }, (table) => [
   check("rank_position_check", sql`${table.rankPosition} BETWEEN 1 AND 10`),
 ]);
+
+// Better Auth Admin tables
+export * from "./auth-schema";

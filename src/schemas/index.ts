@@ -2,7 +2,7 @@ export * from "./enums";
 export * from "./cars";
 export * from "./characters";
 export * from "./maps";
-export * from "./users";
+export * from "./telegramUsers";
 export * from "./items";
 export * from "./referrals";
 export * from "./runs";

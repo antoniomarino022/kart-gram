@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { characters, userItems, users } from "@/db/schema";
+import { characters, userItems, telegramUsers } from "@/db/schema";
 import {
   EquipCharacterInput,
   equipCharacterSchema,
 } from "@/schemas/characters";
-import { UserResponse } from "@/schemas/users";
+import { TelegramUserResponse } from "@/schemas/telegramUsers";
 import { UnlockType } from "@/types/enums";
 import { handleActionError } from "@/utils/errors";
 import { and, eq } from "drizzle-orm";
@@ -18,7 +18,7 @@ import { and, eq } from "drizzle-orm";
  */
 export async function equipCharacter(
   data: EquipCharacterInput
-): Promise<UserResponse> {
+): Promise<TelegramUserResponse> {
   try {
     const validated = equipCharacterSchema.parse(data);
 
@@ -60,11 +60,11 @@ export async function equipCharacter(
 
     // Aggiorna il personaggio equipaggiato sull'utente
     const [updatedUser] = await db
-      .update(users)
+      .update(telegramUsers)
       .set({
         equippedCharacterId: validated.characterId,
       })
-      .where(eq(users.id, validated.userId))
+      .where(eq(telegramUsers.id, validated.userId))
       .returning();
 
     if (!updatedUser) {

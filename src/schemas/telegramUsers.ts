@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const userResponseSchema = z.object({
+export const telegramUserResponseSchema = z.object({
   id: z.number().int().positive(),
   telegramId: z.number().int(),
   username: z.string().max(100).nullable(),
@@ -14,13 +14,13 @@ export const userResponseSchema = z.object({
   createdAt: z.union([z.string(), z.date()]).nullable(),
 });
 
-export const createUserSchema = z.object({
+export const createTelegramUserSchema = z.object({
   telegramId: z.number().int(),
   username: z.string().max(100).optional().nullable(),
   profileIcon: z.string().optional().nullable(),
 });
 
-export const updateUserSchema = z.object({
+export const updateTelegramUserSchema = z.object({
   username: z.string().max(100).optional().nullable(),
   profileIcon: z.string().optional().nullable(),
   equippedCarId: z.number().int().optional().nullable(),
@@ -28,6 +28,6 @@ export const updateUserSchema = z.object({
   equippedMapId: z.number().int().optional().nullable(),
 });
 
-export type UserResponse = z.infer<typeof userResponseSchema>;
-export type CreateUserInput = z.infer<typeof createUserSchema>;
-export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type TelegramUserResponse = z.infer<typeof telegramUserResponseSchema>;
+export type CreateTelegramUserInput = z.infer<typeof createTelegramUserSchema>;
+export type UpdateTelegramUserInput = z.infer<typeof updateTelegramUserSchema>;

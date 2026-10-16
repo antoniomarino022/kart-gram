@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { cars, userItems, users } from "@/db/schema";
+import { cars, userItems, telegramUsers } from "@/db/schema";
 import { EquipCarInput, equipCarSchema } from "@/schemas/cars";
-import { UserResponse } from "@/schemas/users";
+import { TelegramUserResponse } from "@/schemas/telegramUsers";
 import { UnlockType } from "@/types/enums";
 import { handleActionError } from "@/utils/errors";
 import { and, eq } from "drizzle-orm";
@@ -14,7 +14,7 @@ import { and, eq } from "drizzle-orm";
  * Equipaggia / Seleziona un'auto per l'utente
  * Verifica che l'auto esista e che l'utente la possieda (o sia FREE)
  */
-export async function equipCar(data: EquipCarInput): Promise<UserResponse> {
+export async function equipCar(data: EquipCarInput): Promise<TelegramUserResponse> {
   try {
     const validated = equipCarSchema.parse(data);
 
@@ -49,11 +49,11 @@ export async function equipCar(data: EquipCarInput): Promise<UserResponse> {
 
     // Aggiorna l'auto equipaggiata sull'utente
     const [updatedUser] = await db
-      .update(users)
+      .update(telegramUsers)
       .set({
         equippedCarId: validated.carId,
       })
-      .where(eq(users.id, validated.userId))
+      .where(eq(telegramUsers.id, validated.userId))
       .returning();
 
     if (!updatedUser) {

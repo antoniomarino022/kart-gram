@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { maps, userItems, users } from "@/db/schema";
+import { maps, userItems, telegramUsers } from "@/db/schema";
 import { EquipMapInput, equipMapSchema } from "@/schemas/maps";
-import { UserResponse } from "@/schemas/users";
+import { TelegramUserResponse } from "@/schemas/telegramUsers";
 import { UnlockType } from "@/types/enums";
 import { handleActionError } from "@/utils/errors";
 import { and, eq } from "drizzle-orm";
@@ -12,7 +12,7 @@ import { and, eq } from "drizzle-orm";
  * Equipaggia / Seleziona una mappa per l'utente
  * Verifica che la mappa esista e che l'utente la possieda (o sia FREE)
  */
-export async function equipMap(data: EquipMapInput): Promise<UserResponse> {
+export async function equipMap(data: EquipMapInput): Promise<TelegramUserResponse> {
   try {
     const validated = equipMapSchema.parse(data);
 
@@ -49,11 +49,11 @@ export async function equipMap(data: EquipMapInput): Promise<UserResponse> {
 
     // Aggiorna la mappa selezionata sull'utente
     const [updatedUser] = await db
-      .update(users)
+      .update(telegramUsers)
       .set({
         equippedMapId: validated.mapId,
       })
-      .where(eq(users.id, validated.userId))
+      .where(eq(telegramUsers.id, validated.userId))
       .returning();
 
     if (!updatedUser) {

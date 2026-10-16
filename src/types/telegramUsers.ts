@@ -1,4 +1,4 @@
-export interface UserResponse {
+export interface TelegramUserResponse {
   id: number;
   telegramId: number;
   username: string | null;

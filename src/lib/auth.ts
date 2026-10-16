@@ -12,8 +12,18 @@ export const auth = betterAuth({
     enabled: true,
   },
   trustedOrigins: [
-    process.env.NEXT_PUBLIC_APP_URL!,
+    "http://localhost:3000",
+    "http://localhost:3001",
+    process.env.DASHBOARD_URL || "",
+    process.env.NEXT_PUBLIC_APP_URL || "",
+    process.env.BETTER_AUTH_URL || "",
   ].filter(Boolean),
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
+  },
 });
 
 export type Session = typeof auth.$Infer.Session;

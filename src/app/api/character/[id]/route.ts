@@ -4,6 +4,7 @@ import { characters } from "@/db/schema";
 import { updateCharacterSchema } from "@/schemas/characters";
 import { eq } from "drizzle-orm";
 import { flattenError } from "zod";
+import { auth } from "@/lib/auth";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -52,6 +53,14 @@ export async function GET(request: Request, context: RouteContext) {
  */
 export async function PUT(request: Request, context: RouteContext) {
   try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session || (session.user as { role?: string }).role !== "admin") {
+      return NextResponse.json(
+        { message: "Accesso negato: solo per amministratori" },
+        { status: 403 }
+      );
+    }
+
     const { id } = await context.params;
     const numericId = Number(id);
 
@@ -108,6 +117,14 @@ export async function PUT(request: Request, context: RouteContext) {
  */
 export async function DELETE(request: Request, context: RouteContext) {
   try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session || (session.user as { role?: string }).role !== "admin") {
+      return NextResponse.json(
+        { message: "Accesso negato: solo per amministratori" },
+        { status: 403 }
+      );
+    }
+
     const { id } = await context.params;
     const numericId = Number(id);
 

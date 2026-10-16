@@ -4,6 +4,7 @@ import { cars } from "@/db/schema";
 import { createCarSchema } from "@/schemas/cars";
 import { eq } from "drizzle-orm";
 import { flattenError } from "zod";
+import { auth } from "@/lib/auth";
 
 /**
  * GET /api/car - Recupera tutte le auto
@@ -22,10 +23,18 @@ export async function GET() {
 }
 
 /**
- * POST /api/car - Crea una nuova auto
+ * POST /api/car - Crea una nuova auto (solo admin)
  */
 export async function POST(request: Request) {
   try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session || (session.user as { role?: string }).role !== "admin") {
+      return NextResponse.json(
+        { message: "Accesso negato: solo per amministratori" },
+        { status: 403 }
+      );
+    }
+
     const json = await request.json();
 
     const validation = createCarSchema.safeParse(json);

@@ -4,6 +4,7 @@ import { maps } from "@/db/schema";
 import { createMapSchema } from "@/schemas/maps";
 import { eq } from "drizzle-orm";
 import { flattenError } from "zod";
+import { auth } from "@/lib/auth";
 
 /**
  * GET /api/maps - Recupera tutte le mappe
@@ -22,10 +23,18 @@ export async function GET() {
 }
 
 /**
- * POST /api/maps - Crea una nuova mappa
+ * POST /api/maps - Crea una nuova mappa (solo admin)
  */
 export async function POST(request: Request) {
   try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session || (session.user as { role?: string }).role !== "admin") {
+      return NextResponse.json(
+        { message: "Accesso negato: solo per amministratori" },
+        { status: 403 }
+      );
+    }
+
     const json = await request.json();
 
     const validation = createMapSchema.safeParse(json);

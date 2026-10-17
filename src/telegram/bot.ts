@@ -26,9 +26,20 @@ bot.start(async (ctx) => {
       .limit(1);
 
     if (!existingUser) {
+      let profileIcon: string | undefined = undefined;
+
+      // Recupera la foto profilo da Telegram
+      const photos = await ctx.telegram.getUserProfilePhotos(telegramId, 0, 1);
+      if (photos.total_count > 0) {
+        const fileId = photos.photos[0][0].file_id;
+        const fileLink = await ctx.telegram.getFileLink(fileId);
+        profileIcon = fileLink.href;
+      }
+
       await db.insert(telegramUsers).values({
         telegramId,
         username,
+        profileIcon,
       });
     }
 

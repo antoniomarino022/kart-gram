@@ -20,8 +20,14 @@ export const equipMapSchema = z.object({
   mapId: z.number().int().positive(),
 });
 
+export const buyMapInputSchema = z.object({
+  telegramUserId: z.number().int().positive(),
+  mapId: z.number().int().positive(),
+});
+
 export type MapResponse = z.infer<typeof mapResponseSchema>;
 export type MapsListResponse = z.infer<typeof mapsListResponseSchema>;
 export type CreateMapInput = z.infer<typeof createMapSchema>;
 export type UpdateMapInput = z.infer<typeof updateMapSchema>;
 export type EquipMapInput = z.infer<typeof equipMapSchema>;
+export type BuyMapInput = z.infer<typeof buyMapInputSchema>;

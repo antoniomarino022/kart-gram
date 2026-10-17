@@ -7,6 +7,7 @@ import {
   resumeGameRun,
   finishGameRun,
   abandonGameRun,
+  reviveGameRun,
 } from "@/app/actions/gameRunActions";
 import {
   StartGameRunInput,
@@ -14,6 +15,7 @@ import {
   ResumeGameRunInput,
   FinishGameRunInput,
   AbandonGameRunInput,
+  ReviveGameRunInput,
 } from "@/schemas/runs";
 
 export const gameRunQueryKeys = {
@@ -100,6 +102,26 @@ export function useAbandonGameRun() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: gameRunQueryKeys.active(variables.userId),
+      });
+    },
+  });
+}
+
+/**
+ * Hook per fare Revive durante la partita pagando con le monete
+ * Invalida sia la run attiva sia il saldo monete dell'utente
+ */
+export function useReviveGameRun() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ReviveGameRunInput) => reviveGameRun(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: gameRunQueryKeys.active(variables.userId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user", variables.userId],
       });
     },
   });

@@ -21,8 +21,14 @@ export const equipCharacterSchema = z.object({
   characterId: z.number().int().positive(),
 });
 
+export const buyCharacterInputSchema = z.object({
+  telegramUserId: z.number().int().positive(),
+  characterId: z.number().int().positive(),
+});
+
 export type CharacterResponse = z.infer<typeof characterResponseSchema>;
 export type CharactersListResponse = z.infer<typeof charactersListResponseSchema>;
 export type CreateCharacterInput = z.infer<typeof createCharacterSchema>;
 export type UpdateCharacterInput = z.infer<typeof updateCharacterSchema>;
 export type EquipCharacterInput = z.infer<typeof equipCharacterSchema>;
+export type BuyCharacterInput = z.infer<typeof buyCharacterInputSchema>;

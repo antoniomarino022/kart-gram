@@ -58,6 +58,13 @@ export const abandonGameRunSchema = z.object({
   coinsCollected: z.number().int().nonnegative().optional(),
 });
 
+// Input per effettuare un revive usando le monete durante la run
+export const reviveGameRunSchema = z.object({
+  runId: z.number().int().positive(),
+  userId: z.number().int().positive(),
+  coinCost: z.number().int().positive().default(500),
+});
+
 // Compatibilità con codice precedente
 export const stopGameRunSchema = pauseGameRunSchema;
 
@@ -70,4 +77,5 @@ export type PauseGameRunInput = z.infer<typeof pauseGameRunSchema>;
 export type ResumeGameRunInput = z.infer<typeof resumeGameRunSchema>;
 export type FinishGameRunInput = z.infer<typeof finishGameRunSchema>;
 export type AbandonGameRunInput = z.infer<typeof abandonGameRunSchema>;
+export type ReviveGameRunInput = z.infer<typeof reviveGameRunSchema>;
 export type StopGameRunInput = z.infer<typeof stopGameRunSchema>;

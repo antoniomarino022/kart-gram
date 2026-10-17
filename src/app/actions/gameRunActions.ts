@@ -1,22 +1,24 @@
 "use server";
 
 import { db } from "@/db";
-import { gameRuns, telegramUsers } from "@/db/schema";
+import { gameRuns, telegramUsers, coinTransactions } from "@/db/schema";
 import {
   startGameRunSchema,
   pauseGameRunSchema,
   resumeGameRunSchema,
   finishGameRunSchema,
   abandonGameRunSchema,
+  reviveGameRunSchema,
   StartGameRunInput,
   PauseGameRunInput,
   ResumeGameRunInput,
   FinishGameRunInput,
   AbandonGameRunInput,
+  ReviveGameRunInput,
   GameRunResponse,
 } from "@/schemas/runs";
-import { RunStatus } from "@/types/enums";
-import { and, eq, sql } from "drizzle-orm";
+import { RunStatus, CoinReason } from "@/types/enums";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { handleActionError } from "@/utils/errors";
 
 /**
@@ -208,5 +210,68 @@ export async function abandonGameRun(data: AbandonGameRunInput): Promise<GameRun
     return updatedRun;
   } catch (error) {
     handleActionError(error, "Impossibile abbandonare la sessione di gioco.");
+  }
+}
+
+/**
+ * Effettua un Revive durante la partita pagando con le monete (CoinReason.REVIVE)
+ */
+export async function reviveGameRun(data: ReviveGameRunInput): Promise<GameRunResponse> {
+  try {
+    const validated = reviveGameRunSchema.parse(data);
+
+    const [run] = await db
+      .select()
+      .from(gameRuns)
+      .where(and(eq(gameRuns.id, validated.runId), eq(gameRuns.userId, validated.userId)))
+      .limit(1);
+
+    if (!run) {
+      throw new Error("Nessuna partita trovata per questo utente.");
+    }
+
+    if (run.status === RunStatus.FINISHED || run.status === RunStatus.ABANDONED) {
+      throw new Error(`Impossibile fare revive su una partita già terminata (${run.status}).`);
+    }
+
+    // Scala atomicamente le monete solo se il saldo dell'utente è sufficiente
+    const [updatedUser] = await db
+      .update(telegramUsers)
+      .set({
+        coins: sql`${telegramUsers.coins} - ${validated.coinCost}`,
+      })
+      .where(
+        and(
+          eq(telegramUsers.id, validated.userId),
+          gte(telegramUsers.coins, validated.coinCost)
+        )
+      )
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error("Monete insufficienti per effettuare il revive o utente non trovato.");
+    }
+
+    // Registra lo storico della spesa monete
+    await db.insert(coinTransactions).values({
+      userId: validated.userId,
+      amount: -validated.coinCost,
+      reason: CoinReason.REVIVE,
+      refId: run.id,
+    });
+
+    // Incrementa il contatore revivesUsed e riporta la run in RUNNING
+    const [updatedRun] = await db
+      .update(gameRuns)
+      .set({
+        status: RunStatus.RUNNING,
+        revivesUsed: sql`${gameRuns.revivesUsed} + 1`,
+      })
+      .where(eq(gameRuns.id, run.id))
+      .returning();
+
+    return updatedRun;
+  } catch (error) {
+    handleActionError(error, "Impossibile effettuare il revive.");
   }
 }

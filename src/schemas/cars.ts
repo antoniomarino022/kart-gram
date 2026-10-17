@@ -12,18 +12,26 @@ export const carResponseSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const equipCarSchema = z.object({
+  userId: z.number().int().positive(),
+  carId: z.number().int().positive(),
+});
+
+export const buyCarInputSchema = z.object({
+  telegramUserId: z.number().int().positive(),
+  carId: z.number().int().positive(),
+});
+
+
 export const carsListResponseSchema = z.array(carResponseSchema);
 
 export const createCarSchema = carResponseSchema.omit({ id: true });
 export const updateCarSchema = createCarSchema.partial();
 
-export const equipCarSchema = z.object({
-  userId: z.number().int().positive(),
-  carId: z.number().int().positive(),
-});
 
 export type CarResponse = z.infer<typeof carResponseSchema>;
 export type CarsListResponse = z.infer<typeof carsListResponseSchema>;
 export type CreateCarInput = z.infer<typeof createCarSchema>;
 export type UpdateCarInput = z.infer<typeof updateCarSchema>;
 export type EquipCarInput = z.infer<typeof equipCarSchema>;
+export type BuyCarInput = z.infer<typeof buyCarInputSchema>;

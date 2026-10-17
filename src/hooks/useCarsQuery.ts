@@ -1,8 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { equipCar } from "@/app/actions/carActions";
-import { EquipCarInput } from "@/schemas/cars";
+import { equipCar, buyCarWithCoins, watchAdForCar } from "@/app/actions/carActions";
+import { EquipCarInput, BuyCarInput } from "@/schemas/cars";
 import { carService } from "@/services/carService";
 
 export const carQueryKeys = {
@@ -42,6 +42,38 @@ export function useEquipCar() {
     mutationFn: (data: EquipCarInput) => equipCar(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+    },
+  });
+}
+
+/**
+ * Hook per acquistare un'auto con le monete
+ */
+export function useBuyCarWithCoins() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BuyCarInput) => buyCarWithCoins(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["user", variables.telegramUserId],
+      });
+    },
+  });
+}
+
+/**
+ * Hook per registrare la visione di un annuncio (ADS) per sbloccare un'auto
+ */
+export function useWatchAdForCar() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BuyCarInput) => watchAdForCar(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["user", variables.telegramUserId],
+      });
     },
   });
 }

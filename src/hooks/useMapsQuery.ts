@@ -1,8 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { equipMap } from "@/app/actions/mapActions";
-import { EquipMapInput } from "@/schemas/maps";
+import { equipMap, buyMapWithCoins, watchAdForMap } from "@/app/actions/mapActions";
+import { EquipMapInput, BuyMapInput } from "@/schemas/maps";
 import { mapService } from "@/services/mapService";
 
 export const mapQueryKeys = {
@@ -42,6 +42,38 @@ export function useEquipMap() {
     mutationFn: (data: EquipMapInput) => equipMap(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user", variables.userId] });
+    },
+  });
+}
+
+/**
+ * Hook per acquistare una mappa con le monete
+ */
+export function useBuyMapWithCoins() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BuyMapInput) => buyMapWithCoins(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["user", variables.telegramUserId],
+      });
+    },
+  });
+}
+
+/**
+ * Hook per registrare la visione di un annuncio (ADS) per sbloccare una mappa
+ */
+export function useWatchAdForMap() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BuyMapInput) => watchAdForMap(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["user", variables.telegramUserId],
+      });
     },
   });
 }

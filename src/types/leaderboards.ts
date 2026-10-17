@@ -27,3 +27,26 @@ export interface MonthlyRewardsLogResponse {
 }
 
 export type MonthlyRewardsLogListResponse = MonthlyRewardsLogResponse[];
+
+export interface TopScoreLeaderboardEntry {
+  rank: number;
+  userId: number;
+  telegramId: number;
+  username: string | null;
+  profileIcon: string | null;
+  score: number;
+}
+
+export interface MostLoyalLeaderboardEntry {
+  rank: number;
+  userId: number;
+  telegramId: number;
+  username: string | null;
+  profileIcon: string | null;
+  sharesCount: number;
+}
+
+export interface LeaderboardsOverviewResponse {
+  topScore: TopScoreLeaderboardEntry[];
+  mostLoyal: MostLoyalLeaderboardEntry[];
+}

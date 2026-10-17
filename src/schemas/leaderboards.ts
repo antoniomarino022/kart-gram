@@ -32,3 +32,30 @@ export type MonthlyLeaderboardResponse = z.infer<typeof monthlyLeaderboardRespon
 export type MonthlyRewardsLogResponse = z.infer<typeof monthlyRewardsLogResponseSchema>;
 export type MonthlyLeaderboardsListResponse = z.infer<typeof monthlyLeaderboardsListResponseSchema>;
 export type MonthlyRewardsLogListResponse = z.infer<typeof monthlyRewardsLogListResponseSchema>;
+
+export const topScoreLeaderboardEntrySchema = z.object({
+  rank: z.number().int().min(1).max(10),
+  userId: z.number().int().positive(),
+  telegramId: z.number().int(),
+  username: z.string().nullable(),
+  profileIcon: z.string().nullable(),
+  score: z.number().int().default(0),
+});
+
+export const mostLoyalLeaderboardEntrySchema = z.object({
+  rank: z.number().int().min(1).max(10),
+  userId: z.number().int().positive(),
+  telegramId: z.number().int(),
+  username: z.string().nullable(),
+  profileIcon: z.string().nullable(),
+  sharesCount: z.number().int().default(0),
+});
+
+export const leaderboardsOverviewResponseSchema = z.object({
+  topScore: z.array(topScoreLeaderboardEntrySchema),
+  mostLoyal: z.array(mostLoyalLeaderboardEntrySchema),
+});
+
+export type TopScoreLeaderboardEntry = z.infer<typeof topScoreLeaderboardEntrySchema>;
+export type MostLoyalLeaderboardEntry = z.infer<typeof mostLoyalLeaderboardEntrySchema>;
+export type LeaderboardsOverviewResponse = z.infer<typeof leaderboardsOverviewResponseSchema>;

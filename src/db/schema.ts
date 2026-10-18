@@ -317,7 +317,7 @@ export const items = pgTable("Items", {
 export const playerItems = pgTable("Player_Items", {
   userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   itemId: varchar("item_id", { length: 64 }).notNull().references(() => items.id, { onDelete: "cascade" }),
-  source: varchar("source", { length: 10 }).notNull(), // coins | stars | grant | admin
+  source: varchar("source", { length: 20 }).notNull(), // coins | stars | grant | admin | ads | referral
   acquiredAt: timestamp("acquired_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   primaryKey({ columns: [table.userId, table.itemId] }),

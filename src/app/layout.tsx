@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 
 import QueryProvider from "@/providers/QueryProvider";
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it" className={`${barlow.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="h-full overflow-hidden">

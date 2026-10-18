@@ -4,7 +4,7 @@ import { CoinReason } from "@/types/enums";
 import type { Tx } from "@/server/tx";
 import type { ItemRow } from "./catalog";
 
-export type GrantSource = "coins" | "stars" | "grant" | "admin";
+export type GrantSource = "coins" | "stars" | "grant" | "admin" | "ads" | "referral";
 
 /** Consegna un oggetto comprato: pacchetti di monete e starter pack danno monete/revive, il resto entra tra i posseduti. */
 export async function grantItem(tx: Tx, userId: number, item: ItemRow, source: GrantSource) {

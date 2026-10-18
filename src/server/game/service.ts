@@ -2,12 +2,12 @@ import { randomBytes, randomInt } from "node:crypto";
 import { and, desc, eq, gt, inArray, isNotNull, lt, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { coinTransactions, items, playerItems, playerUpgrades, runs, starPayments, telegramUsers } from "@/db/schema";
+import { adViews, coinTransactions, items, playerItems, playerUpgrades, referrals, runs, starPayments, telegramUsers, unlockProgress } from "@/db/schema";
+import { AdPurpose, CoinReason, ReferralStatus } from "@/types/enums";
 import { MAX_UPGRADE_LEVEL, REVIVE_PRICE, UPGRADE_COSTS } from "@/backend/catalog";
 import type { FinishResult, LeaderboardEntry, Profile, RevivePay, Slot } from "@/backend/types";
 import { CONFIG, TICK_RATE } from "@/game/core/config";
 import { finalScore, simulate, type UpgradeId } from "@/game/core/sim";
-import { CoinReason } from "@/types/enums";
 import { bad, HttpError } from "@/server/http";
 import { withTx, type Tx } from "@/server/tx";
 import { isFree, loadItems, type ItemRow } from "./catalog";
@@ -138,8 +138,34 @@ export async function finishRun(userId: number, runId: string, body: unknown): P
       await tx
         .update(telegramUsers)
         .set({ coins: sql`${telegramUsers.coins} + ${coins}`, allTimeHighScore: sql`greatest(${telegramUsers.allTimeHighScore}, ${score})` })
-        .where(eq(telegramUsers.id, userId));
       if (coins > 0) await tx.insert(coinTransactions).values({ userId, amount: coins, reason: CoinReason.RUN });
+
+      // Se l'utente era stato invitato ed è in stato PENDING, qualifica il referral e premia l'invitante
+      const [pendingRef] = await tx
+        .select()
+        .from(referrals)
+        .where(and(eq(referrals.invitedUserId, userId), eq(referrals.status, ReferralStatus.PENDING)))
+        .limit(1);
+
+      if (pendingRef) {
+        const REFERRAL_REWARD_COINS = 100;
+        await tx
+          .update(referrals)
+          .set({ status: ReferralStatus.QUALIFIED, qualifiedAt: new Date() })
+          .where(eq(referrals.id, pendingRef.id));
+
+        await tx
+          .update(telegramUsers)
+          .set({ coins: sql`${telegramUsers.coins} + ${REFERRAL_REWARD_COINS}` })
+          .where(eq(telegramUsers.id, pendingRef.inviterUserId));
+
+        await tx.insert(coinTransactions).values({
+          userId: pendingRef.inviterUserId,
+          amount: REFERRAL_REWARD_COINS,
+          reason: CoinReason.REFERRAL,
+        });
+      }
+
       return { newBest, coinsEarned: coins };
     });
   };
@@ -259,6 +285,100 @@ export async function createStarsInvoice(userId: number, itemId: string): Promis
     item.kind === "coin_pack" ? `${item.coins ?? 0} monete` : item.kind === "starter_pack" ? "Pacchetto di benvenuto" : `Sblocca ${item.name}`;
   const invoiceLink = await createInvoice(userId, { purpose: "item", itemId: item.id, stars: item.priceStars, title: item.name, description });
   return { invoiceLink };
+}
+
+// ---------------------------------------------------------------------------
+// Monetizzazione e Progressioni (ADS & Referral)
+// ---------------------------------------------------------------------------
+
+/**
+ * Registra una visione pubblicitaria (ADS) per guadagnare monete o progredire nello sblocco di un oggetto.
+ */
+export async function watchAd(
+  userId: number,
+  options?: { itemId?: string; providerRef?: string }
+): Promise<{ ok: boolean; rewardedCoins: number; itemUnlocked?: boolean; progress?: number; profile: Profile }> {
+  return withTx(async (tx) => {
+    const player = await lockPlayer(tx, userId);
+    const rewardCoins = 25; // Monete bonus base per visualizzazione ad
+
+    // Salva record in Ad_Views
+    await tx.insert(adViews).values({
+      userId,
+      purpose: options?.itemId ? AdPurpose.UNLOCK_ITEM : AdPurpose.COIN_BONUS,
+      providerRef: options?.providerRef ?? null,
+      rewardCoins,
+    });
+
+    // Incrementa contatore globale dell'utente
+    await tx
+      .update(telegramUsers)
+      .set({
+        adsWatchedTotal: sql`${telegramUsers.adsWatchedTotal} + 1`,
+        coins: sql`${telegramUsers.coins} + ${rewardCoins}`,
+      })
+      .where(eq(telegramUsers.id, userId));
+
+    await tx.insert(coinTransactions).values({
+      userId,
+      amount: rewardCoins,
+      reason: CoinReason.AD,
+    });
+
+    let itemUnlocked = false;
+    let progress = 0;
+
+    // Se la pubblicità era finalizzata allo sblocco di un oggetto
+    if (options?.itemId) {
+      const item = await activeItem(tx, options.itemId);
+      const alreadyOwned = await owns(tx, userId, item);
+      if (!alreadyOwned) {
+        // Ogni 5 video visti sblocca l'oggetto
+        const ADS_REQUIRED = 5;
+        const [existing] = await tx
+          .select()
+          .from(unlockProgress)
+          .where(eq(unlockProgress.userId, userId))
+          .limit(1);
+
+        progress = (existing?.progress ?? 0) + 1;
+        if (existing) {
+          await tx
+            .update(unlockProgress)
+            .set({ progress, updatedAt: new Date() })
+            .where(eq(unlockProgress.id, existing.id));
+        } else {
+          await tx.insert(unlockProgress).values({ userId, progress, updatedAt: new Date() });
+        }
+
+        if (progress >= ADS_REQUIRED) {
+          await grantItem(tx, userId, item, "ads");
+          itemUnlocked = true;
+        }
+      }
+    }
+
+    const updatedProfile = await buildProfile(userId);
+    return { ok: true, rewardedCoins: rewardCoins, itemUnlocked, progress, profile: updatedProfile };
+  });
+}
+
+/**
+ * Statistiche di sblocco e referral per l'utente
+ */
+export async function getMilestones(userId: number) {
+  const [player] = await db.select().from(telegramUsers).where(eq(telegramUsers.id, userId)).limit(1);
+  if (!player) throw new HttpError(404, "Giocatore non trovato");
+
+  const [referralsCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(referrals)
+    .where(and(eq(referrals.inviterUserId, userId), eq(referrals.status, ReferralStatus.QUALIFIED)));
+
+  return {
+    adsWatchedTotal: player.adsWatchedTotal,
+    referralsCount: Number(referralsCount?.count ?? 0),
+  };
 }
 
 // ---------------------------------------------------------------------------

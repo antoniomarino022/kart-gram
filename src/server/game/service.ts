@@ -138,6 +138,7 @@ export async function finishRun(userId: number, runId: string, body: unknown): P
       await tx
         .update(telegramUsers)
         .set({ coins: sql`${telegramUsers.coins} + ${coins}`, allTimeHighScore: sql`greatest(${telegramUsers.allTimeHighScore}, ${score})` })
+        .where(eq(telegramUsers.id, userId));
       if (coins > 0) await tx.insert(coinTransactions).values({ userId, amount: coins, reason: CoinReason.RUN });
 
       // Se l'utente era stato invitato ed è in stato PENDING, qualifica il referral e premia l'invitante

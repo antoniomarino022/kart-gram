@@ -62,7 +62,7 @@ export function Garage({ backend, profile, catalog, track, toast, onBack }: Prop
     await equipSlot(it);
   });
   const buyStars = (it: CatalogItem) => act(it.id, async () => {
-    if (!(await track(buyWithStars(backend, it.id)))) { toast("Pagamento non completato"); return; }
+    if (!(await track(buyWithStars(backend, it)))) { toast("Pagamento non completato"); return; }
     toast(`${it.name} sbloccato!`);
     await equipSlot(it);
   });

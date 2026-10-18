@@ -8,7 +8,13 @@ export function createRemoteBackend(opts: { baseUrl: string; getInitData: () => 
       headers: { "Content-Type": "application/json", Authorization: `tma ${opts.getInitData()}` },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (!res.ok) throw new BackendError(res.status, (await res.text().catch(() => "")) || res.statusText);
+    if (!res.ok) {
+      // le API rispondono {"message": "..."}: al giocatore si mostra solo il messaggio
+      const text = await res.text().catch(() => "");
+      let message = text;
+      try { message = (JSON.parse(text) as { message?: string }).message ?? text; } catch { /* testo semplice */ }
+      throw new BackendError(res.status, message || res.statusText);
+    }
     return res.json() as Promise<T>;
   }
   return {

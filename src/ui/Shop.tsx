@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isRemoteBackend } from "@/backend";
 import { buyWithStars } from "@/backend/purchase";
 import type { Backend, CatalogItem, Profile } from "@/backend/types";
 import { errorText } from "./errors";
@@ -8,7 +9,6 @@ import { Screen } from "./kit";
 import type { TrackProfile } from "./profileSync";
 import { fmt } from "./loadout";
 
-const IS_MOCK = process.env.NEXT_PUBLIC_BACKEND !== "remote";
 const COSMETIC_KINDS = ["kart", "paint", "wheels", "trail"];
 const KIND_LABEL: Record<string, string> = { kart: "Kart", paint: "Vernice", wheels: "Ruote", trail: "Scia" };
 const PACK_ICONS = ["💰", "🧰", "🏦"];
@@ -29,7 +29,7 @@ export function Shop({ backend, profile, catalog, track, toast, onBack }: Props)
     if (busy) return;
     setBusy(it.id);
     try {
-      const p = await track(buyWithStars(backend, it.id));
+      const p = await track(buyWithStars(backend, it));
       if (!p) { toast("Pagamento non completato"); return; }
       toast(it.kind === "coin_pack" ? `+${fmt(it.coins ?? 0)} 🪙` : `${it.name} sbloccato!`);
     } catch (err) {
@@ -48,7 +48,7 @@ export function Shop({ backend, profile, catalog, track, toast, onBack }: Props)
 
   return (
     <Screen title="Shop" coins={profile.coins} onBack={onBack}>
-      {IS_MOCK && (
+      {!isRemoteBackend() && (
         <div className="mb-3 inline-block rounded-[var(--ui-radius)] bg-ui-primary px-2.5 py-1 text-sm font-extrabold text-ui-primary-text">
           Modalità test: Stelle gratis
         </div>

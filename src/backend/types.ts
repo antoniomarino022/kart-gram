@@ -36,6 +36,8 @@ export interface RunResult {
   coins: number;
   durationMs: number;
   revived: boolean;
+  /** tick simulati: il server rigioca gli input fino a qui */
+  ticks: number;
   /** cambi di sterzata: +1 sinistra, -1 destra, 0 dritto */
   inputs: [tick: number, steer: -1 | 0 | 1][];
 }
@@ -47,7 +49,8 @@ export interface LeaderboardEntry { rank: number; userId: string; name: string; 
 export interface Backend {
   getProfile(): Promise<Profile>;
   getCatalog(): Promise<CatalogItem[]>;
-  startRun(): Promise<{ runId: string; seed: number }>;
+  /** upgrades e wheels: stato con cui il server rigiocherà la partita (assenti nel mock: si usa il profilo) */
+  startRun(): Promise<{ runId: string; seed: number; upgrades?: Record<UpgradeId, number>; wheels?: string }>;
   finishRun(r: RunResult): Promise<FinishResult>;
   revive(runId: string, pay: RevivePay): Promise<{ ok: boolean; invoiceLink?: string }>;
   equip(slot: Slot, itemId: string): Promise<Profile>;

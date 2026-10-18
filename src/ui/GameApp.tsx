@@ -92,11 +92,11 @@ export default function GameApp() {
   useEffect(() => () => { mounted.current?.game.destroy(); mounted.current = null; }, []);
 
   /** Distrugge il Game corrente e ne crea uno nuovo sullo stesso canvas. */
-  const mountGame = useCallback((opts: { loadout: Loadout; seed: number; upgrades: UpgradeLevels; onEvent: (e: GameEvent) => void; demo: boolean }) => {
+  const mountGame = useCallback((opts: { loadout: Loadout; seed: number; upgrades: UpgradeLevels; wheels?: string; onEvent: (e: GameEvent) => void; demo: boolean }) => {
     const canvas = canvasRef.current;
     if (!canvas || !data) return null;
     mounted.current?.game.destroy();
-    const g = new Game({ canvas, models: data.models, loadout: opts.loadout, wheels: data.profile.equipped.wheels, seed: opts.seed, upgrades: opts.upgrades, onEvent: opts.onEvent });
+    const g = new Game({ canvas, models: data.models, loadout: opts.loadout, wheels: opts.wheels ?? data.profile.equipped.wheels, seed: opts.seed, upgrades: opts.upgrades, onEvent: opts.onEvent });
     mounted.current = { game: g, key: loadoutKey(opts.loadout) };
     g.start();
     if (opts.demo) g.pause(); // disegna un frame e poi resta ferma
@@ -129,8 +129,13 @@ export default function GameApp() {
     if (!data || starting) return;
     setStarting(true);
     let runId: string, seed: number, unsaved = false;
+    // il server rigioca la partita con upgrade e ruote fissati all'avvio: il client usa gli stessi
+    let upgrades = data.profile.upgrades, wheels: string | undefined;
     try {
-      ({ runId, seed } = await backend.startRun());
+      const run = await backend.startRun();
+      ({ runId, seed } = run);
+      if (run.upgrades) upgrades = run.upgrades;
+      wheels = run.wheels;
     } catch (err) {
       console.warn("[app] startRun fallito, partita locale", err);
       seed = Math.floor(Math.random() * 2 ** 31);
@@ -142,7 +147,8 @@ export default function GameApp() {
     g = mountGame({
       loadout: buildLoadout(data.profile.equipped, data.catalog),
       seed,
-      upgrades: data.profile.upgrades,
+      upgrades,
+      wheels,
       onEvent: (e) => {
         if (e.type === "gameover" && g) onGameOver(g);
         else if (e.type === "driftEnd" && e.points >= 1) popups.push("drift", e.points);
@@ -173,7 +179,7 @@ export default function GameApp() {
     bestRef.current = Math.max(bestRef.current, finalScore(st));
     track(backend.finishRun({
       runId: run.runId, score: finalScore(st), distance: Math.floor(st.kart.s), coins: st.coins,
-      durationMs: game.durationMs, revived: st.revived, inputs: game.inputs,
+      durationMs: game.durationMs, revived: st.revived, ticks: st.tick, inputs: game.inputs,
     }).then((r) => r.profile)).catch((err) => { console.warn("[app] finishRun fallito", err); show("Partita non salvata"); });
   }, [backend, game, track, show]);
 

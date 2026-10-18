@@ -65,12 +65,12 @@ describe("mock backend", () => {
     const b = make();
     const { runId, seed } = await b.startRun();
     expect(typeof seed).toBe("number");
-    const r = await b.finishRun({ runId, score: 1234, distance: 900, coins: 12, durationMs: 60000, revived: false, inputs: [] });
+    const r = await b.finishRun({ runId, score: 1234, distance: 900, coins: 12, durationMs: 60000, revived: false, ticks: 0, inputs: [] });
     expect(r.newBest).toBe(true);
     expect(r.coinsEarned).toBe(12);
     expect(r.profile.bestScore).toBe(1234);
     expect(r.profile.coins).toBe(5012);
-    const r2 = await b.finishRun({ runId: (await b.startRun()).runId, score: 10, distance: 5, coins: 0, durationMs: 1000, revived: false, inputs: [] });
+    const r2 = await b.finishRun({ runId: (await b.startRun()).runId, score: 10, distance: 5, coins: 0, durationMs: 1000, revived: false, ticks: 0, inputs: [] });
     expect(r2.newBest).toBe(false);
   });
 
@@ -86,7 +86,7 @@ describe("mock backend", () => {
   it("leaderboard includes the player", async () => {
     const b = make();
     const { runId } = await b.startRun();
-    await b.finishRun({ runId, score: 999999, distance: 1, coins: 0, durationMs: 1, revived: false, inputs: [] });
+    await b.finishRun({ runId, score: 999999, distance: 1, coins: 0, durationMs: 1, revived: false, ticks: 0, inputs: [] });
     const lb = await b.getLeaderboard("global");
     expect(lb[0].score).toBe(999999);
     expect(lb.map((e) => e.rank)).toEqual(lb.map((_, i) => i + 1));

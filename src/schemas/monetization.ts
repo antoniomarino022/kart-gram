@@ -7,6 +7,8 @@ export const adViewResponseSchema = z.object({
   userId: z.number().int().positive(),
   purpose: adPurposeEnumSchema,
   carId: z.number().int().positive().nullable(),
+  paintId: z.number().int().positive().nullable(),
+  wheelId: z.number().int().positive().nullable(),
   characterId: z.number().int().positive().nullable(),
   mapId: z.number().int().positive().nullable(),
   runId: z.number().int().positive().nullable(),
@@ -18,6 +20,8 @@ export const adViewResponseSchema = z.object({
 export const recordAdViewSchema = z.object({
   purpose: adPurposeEnumSchema,
   carId: z.number().int().positive().optional().nullable(),
+  paintId: z.number().int().positive().optional().nullable(),
+  wheelId: z.number().int().positive().optional().nullable(),
   characterId: z.number().int().positive().optional().nullable(),
   mapId: z.number().int().positive().optional().nullable(),
   runId: z.number().int().positive().optional().nullable(),
@@ -29,6 +33,8 @@ export const paymentResponseSchema = z.object({
   id: z.number().int().positive(),
   userId: z.number().int().positive(),
   carId: z.number().int().positive().nullable(),
+  paintId: z.number().int().positive().nullable(),
+  wheelId: z.number().int().positive().nullable(),
   characterId: z.number().int().positive().nullable(),
   mapId: z.number().int().positive().nullable(),
   starsAmount: z.number().int(),
@@ -39,6 +45,8 @@ export const paymentResponseSchema = z.object({
 
 export const createPaymentSchema = z.object({
   carId: z.number().int().positive().optional().nullable(),
+  paintId: z.number().int().positive().optional().nullable(),
+  wheelId: z.number().int().positive().optional().nullable(),
   characterId: z.number().int().positive().optional().nullable(),
   mapId: z.number().int().positive().optional().nullable(),
   starsAmount: z.number().int().positive(),

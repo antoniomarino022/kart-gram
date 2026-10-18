@@ -63,6 +63,32 @@ export const cars = pgTable("Cars", {
   isActive: boolean("is_active").default(true).notNull(),
 });
 
+export const paints = pgTable("Paints", {
+  id: serial("id").primaryKey(),
+  color: varchar("color", { length: 50 }),
+  unlockType: unlockTypeEnum("unlock_type").notNull(),
+  unlockValue: integer("unlock_value").default(0).notNull(), // Target requirement for unlocking: cost in coins/stars or count of ads/shares required
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const wheels = pgTable("Wheels", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  capacity: integer("capacity").notNull(), // Extra lives provided by the wheels
+  unlockType: unlockTypeEnum("unlock_type").notNull(),
+  unlockValue: integer("unlock_value").default(0).notNull(), // Target requirement for unlocking: cost in coins/stars or count of ads/shares required
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+
+export const powerups = pgTable("Powerups", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  unlockType: unlockTypeEnum("unlock_type").notNull(),
+  unlockValue: integer("unlock_value").default(0).notNull(), // Target requirement for unlocking: cost in coins/stars or count of ads/shares required
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
 export const characters = pgTable("Characters", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
@@ -92,21 +118,39 @@ export const telegramUsers = pgTable("Telegram_Users", {
   allTimeHighScore: integer("all_time_high_score").default(0).notNull(),
   adsWatchedTotal: integer("ads_watched_total").default(0).notNull(),
   equippedCarId: integer("equipped_car_id").references(() => cars.id, { onDelete: "set null" }), // Currently equipped car
+  equippedPaintId: integer("equipped_paint_id").references(() => paints.id, { onDelete: "set null" }), // Currently equipped paint
+  equippedWheelId: integer("equipped_wheel_id").references(() => wheels.id, { onDelete: "set null" }), // Currently equipped wheel
   equippedCharacterId: integer("equipped_character_id").references(() => characters.id, { onDelete: "set null" }), // Currently equipped character
   equippedMapId: integer("equipped_map_id").references(() => maps.id, { onDelete: "set null" }), // Currently selected map
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const userPowerups = pgTable("User_Powerups", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
+  powerupId: integer("powerup_id").notNull().references(() => powerups.id, { onDelete: "cascade" }),
+  level: integer("level").default(1).notNull(), // Upgrade level (e.g. 1 to 5)
+  unlockedAt: timestamp("unlocked_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  unique("user_powerups_user_powerup_unique").on(table.userId, table.powerupId),
+  index("idx_user_powerups_user").on(table.userId),
+]);
+
 export const userItems = pgTable("User_Items", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id, { onDelete: "cascade" }), // Populated only if owned item is a car
+  paintId: integer("paint_id").references(() => paints.id, { onDelete: "cascade" }), // Populated only if owned item is a paint
+  wheelId: integer("wheel_id").references(() => wheels.id, { onDelete: "cascade" }), // Populated only if owned item is a wheel
   characterId: integer("character_id").references(() => characters.id, { onDelete: "cascade" }), // Populated only if owned item is a character
   mapId: integer("map_id").references(() => maps.id, { onDelete: "cascade" }), // Populated only if owned item is a map
   unlockedAt: timestamp("unlocked_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
-  check("user_items_item_check", sql`num_nonnulls(${table.carId}, ${table.characterId}, ${table.mapId}) = 1`), // Constraint: exactly one of carId, characterId, or mapId must be non-null
+  check("user_items_item_check", sql`num_nonnulls(${table.carId}, ${table.paintId}, ${table.wheelId}, ${table.characterId}, ${table.mapId}) = 1`), // Constraint: exactly one item column must be non-null
   unique("user_items_user_car_unique").on(table.userId, table.carId),
+  unique("user_items_user_paint_unique").on(table.userId, table.paintId),
+  unique("user_items_user_wheel_unique").on(table.userId, table.wheelId),
   unique("user_items_user_char_unique").on(table.userId, table.characterId),
   unique("user_items_user_map_unique").on(table.userId, table.mapId),
   index("idx_user_items_user").on(table.userId),
@@ -116,13 +160,17 @@ export const unlockProgress = pgTable("Unlock_Progress", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id, { onDelete: "cascade" }),
+  paintId: integer("paint_id").references(() => paints.id, { onDelete: "cascade" }),
+  wheelId: integer("wheel_id").references(() => wheels.id, { onDelete: "cascade" }),
   characterId: integer("character_id").references(() => characters.id, { onDelete: "cascade" }),
   mapId: integer("map_id").references(() => maps.id, { onDelete: "cascade" }),
   progress: integer("progress").default(0).notNull(), // Incremental progress toward milestone unlocks (e.g. 3 out of 5 ads watched)
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
-  check("unlock_progress_item_check", sql`num_nonnulls(${table.carId}, ${table.characterId}, ${table.mapId}) = 1`), // Constraint: tracks progress for exactly one item type per row
+  check("unlock_progress_item_check", sql`num_nonnulls(${table.carId}, ${table.paintId}, ${table.wheelId}, ${table.characterId}, ${table.mapId}) = 1`), // Constraint: tracks progress for exactly one item type per row
   unique("unlock_progress_user_car_unique").on(table.userId, table.carId),
+  unique("unlock_progress_user_paint_unique").on(table.userId, table.paintId),
+  unique("unlock_progress_user_wheel_unique").on(table.userId, table.wheelId),
   unique("unlock_progress_user_char_unique").on(table.userId, table.characterId),
   unique("unlock_progress_user_map_unique").on(table.userId, table.mapId),
 ]);
@@ -163,6 +211,8 @@ export const adViews = pgTable("Ad_Views", {
   userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   purpose: adPurposeEnum("purpose").notNull(), // Ad purpose: REVIVE (in-game revive), UNLOCK_ITEM (unlock progression), COIN_BONUS (free coins)
   carId: integer("car_id").references(() => cars.id, { onDelete: "set null" }),
+  paintId: integer("paint_id").references(() => paints.id, { onDelete: "set null" }),
+  wheelId: integer("wheel_id").references(() => wheels.id, { onDelete: "set null" }),
   characterId: integer("character_id").references(() => characters.id, { onDelete: "set null" }),
   mapId: integer("map_id").references(() => maps.id, { onDelete: "set null" }),
   runId: integer("run_id").references(() => gameRuns.id, { onDelete: "set null" }),
@@ -170,13 +220,15 @@ export const adViews = pgTable("Ad_Views", {
   rewardCoins: integer("reward_coins").default(0),
   viewedAt: timestamp("viewed_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
-  check("ad_views_item_check", sql`num_nonnulls(${table.carId}, ${table.characterId}, ${table.mapId}) <= 1`),
+  check("ad_views_item_check", sql`num_nonnulls(${table.carId}, ${table.paintId}, ${table.wheelId}, ${table.characterId}, ${table.mapId}) <= 1`),
 ]);
 
 export const payments = pgTable("Payments", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => telegramUsers.id, { onDelete: "cascade" }),
   carId: integer("car_id").references(() => cars.id),
+  paintId: integer("paint_id").references(() => paints.id),
+  wheelId: integer("wheel_id").references(() => wheels.id),
   characterId: integer("character_id").references(() => characters.id),
   mapId: integer("map_id").references(() => maps.id),
   starsAmount: integer("stars_amount").notNull(), // Amount paid in Telegram Stars
@@ -184,7 +236,7 @@ export const payments = pgTable("Payments", {
   status: paymentStatusEnum("status").default(PaymentStatus.PENDING).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (table) => [
-  check("payments_item_check", sql`num_nonnulls(${table.carId}, ${table.characterId}, ${table.mapId}) = 1`),
+  check("payments_item_check", sql`num_nonnulls(${table.carId}, ${table.paintId}, ${table.wheelId}, ${table.characterId}, ${table.mapId}) = 1`),
   index("idx_payments_user").on(table.userId, table.status),
 ]);
 

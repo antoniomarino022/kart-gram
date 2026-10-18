@@ -74,7 +74,7 @@ export async function buyCarWithCoins(data: BuyCarInput): Promise<CarResponse> {
   try {
     const validated = buyCarInputSchema.parse(data);
 
-    // 1. Verifica esistenza dell'auto
+    // Verifica esistenza dell'auto
     const [car] = await db
       .select()
       .from(cars)
@@ -89,7 +89,7 @@ export async function buyCarWithCoins(data: BuyCarInput): Promise<CarResponse> {
       throw new Error("L'auto non è disponibile per l'acquisto con monete.");
     }
 
-    // 2. Verifica che l'utente non possieda già l'auto
+    //  Verifica che l'utente non possieda già l'auto
     const [alreadyOwned] = await db
       .select()
       .from(userItems)
@@ -120,14 +120,14 @@ export async function buyCarWithCoins(data: BuyCarInput): Promise<CarResponse> {
       throw new Error("Non hai abbastanza soldi per acquistare l'auto.");
     }
 
-    // 4. Inserisci l'auto nella tabella User_Items
+    // Inserisci l'auto nella tabella User_Items
     await db.insert(userItems).values({
       userId: validated.telegramUserId,
       carId: validated.carId,
       unlockedAt: new Date(),
     });
 
-    // 5. Aggiorna i soldi dell'utente
+    //  Aggiorna i soldi dell'utente
     await db
       .update(telegramUsers)
       .set({

@@ -11,6 +11,8 @@ export const telegramUserResponseSchema = z.object({
   allTimeHighScore: z.number().int().default(0),
   adsWatchedTotal: z.number().int().default(0),
   equippedCarId: z.number().int().nullable(),
+  equippedPaintId: z.number().int().nullable(),
+  equippedWheelId: z.number().int().nullable(),
   equippedCharacterId: z.number().int().nullable(),
   equippedMapId: z.number().int().nullable(),
   createdAt: z.union([z.string(), z.date()]).nullable(),
@@ -26,6 +28,8 @@ export const updateTelegramUserSchema = z.object({
   username: z.string().max(100).optional().nullable(),
   profileIcon: z.string().optional().nullable(),
   equippedCarId: z.number().int().optional().nullable(),
+  equippedPaintId: z.number().int().optional().nullable(),
+  equippedWheelId: z.number().int().optional().nullable(),
   equippedCharacterId: z.number().int().optional().nullable(),
   equippedMapId: z.number().int().optional().nullable(),
 });

@@ -10,6 +10,8 @@ export interface TelegramUserResponse {
   allTimeHighScore: number;
   adsWatchedTotal: number;
   equippedCarId: number | null;
+  equippedPaintId: number | null;
+  equippedWheelId: number | null;
   equippedCharacterId: number | null;
   equippedMapId: number | null;
   createdAt: string | Date | null;

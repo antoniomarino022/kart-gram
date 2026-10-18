@@ -5,6 +5,8 @@ export interface AdViewResponse {
   userId: number;
   purpose: AdPurpose;
   carId: number | null;
+  paintId: number | null;
+  wheelId: number | null;
   characterId: number | null;
   mapId: number | null;
   runId: number | null;
@@ -19,6 +21,8 @@ export interface PaymentResponse {
   id: number;
   userId: number;
   carId: number | null;
+  paintId: number | null;
+  wheelId: number | null;
   characterId: number | null;
   mapId: number | null;
   starsAmount: number;

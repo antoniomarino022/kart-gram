@@ -1,0 +1,2986 @@
+{
+  "id": "1faa4361-2287-4b35-b1ba-a3686961c71a",
+  "prevId": "4156fee8-95a9-4386-a549-2f8114f35247",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.Ad_Views": {
+      "name": "Ad_Views",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "ad_purpose_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_id": {
+          "name": "car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paint_id": {
+          "name": "paint_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wheel_id": {
+          "name": "wheel_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "character_id": {
+          "name": "character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_ref": {
+          "name": "provider_ref",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reward_coins": {
+          "name": "reward_coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "viewed_at": {
+          "name": "viewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Ad_Views_user_id_Telegram_Users_id_fk": {
+          "name": "Ad_Views_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Ad_Views_car_id_Cars_id_fk": {
+          "name": "Ad_Views_car_id_Cars_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Ad_Views_paint_id_Paints_id_fk": {
+          "name": "Ad_Views_paint_id_Paints_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "paint_id"
+          ],
+          "tableTo": "Paints",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Ad_Views_wheel_id_Wheels_id_fk": {
+          "name": "Ad_Views_wheel_id_Wheels_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "wheel_id"
+          ],
+          "tableTo": "Wheels",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Ad_Views_character_id_Characters_id_fk": {
+          "name": "Ad_Views_character_id_Characters_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Ad_Views_map_id_Maps_id_fk": {
+          "name": "Ad_Views_map_id_Maps_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Ad_Views_run_id_Game_Runs_id_fk": {
+          "name": "Ad_Views_run_id_Game_Runs_id_fk",
+          "tableFrom": "Ad_Views",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "tableTo": "Game_Runs",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Ad_Views_provider_ref_unique": {
+          "name": "Ad_Views_provider_ref_unique",
+          "columns": [
+            "provider_ref"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "ad_views_item_check": {
+          "name": "ad_views_item_check",
+          "value": "num_nonnulls(\"Ad_Views\".\"car_id\", \"Ad_Views\".\"paint_id\", \"Ad_Views\".\"wheel_id\", \"Ad_Views\".\"character_id\", \"Ad_Views\".\"map_id\") <= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Cars": {
+      "name": "Cars",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_type": {
+          "name": "car_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "speed": {
+          "name": "speed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_lives": {
+          "name": "base_lives",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Characters": {
+      "name": "Characters",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subtype": {
+          "name": "subtype",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bonus_stat": {
+          "name": "bonus_stat",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Coin_Transactions": {
+      "name": "Coin_Transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "coin_reason_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ref_id": {
+          "name": "ref_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_coin_transactions_user": {
+          "name": "idx_coin_transactions_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "\"created_at\" DESC",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Coin_Transactions_user_id_Telegram_Users_id_fk": {
+          "name": "Coin_Transactions_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Coin_Transactions",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Game_Runs": {
+      "name": "Game_Runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_id": {
+          "name": "car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "character_id": {
+          "name": "character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "run_status_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'RUNNING'"
+        },
+        "starting_lives": {
+          "name": "starting_lives",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revives_used": {
+          "name": "revives_used",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "coins_collected": {
+          "name": "coins_collected",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_game_runs_user": {
+          "name": "idx_game_runs_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Game_Runs_user_id_Telegram_Users_id_fk": {
+          "name": "Game_Runs_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Game_Runs",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Game_Runs_car_id_Cars_id_fk": {
+          "name": "Game_Runs_car_id_Cars_id_fk",
+          "tableFrom": "Game_Runs",
+          "columnsFrom": [
+            "car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Game_Runs_character_id_Characters_id_fk": {
+          "name": "Game_Runs_character_id_Characters_id_fk",
+          "tableFrom": "Game_Runs",
+          "columnsFrom": [
+            "character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Game_Runs_map_id_Maps_id_fk": {
+          "name": "Game_Runs_map_id_Maps_id_fk",
+          "tableFrom": "Game_Runs",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Items": {
+      "name": "Items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(64)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_coins": {
+          "name": "price_coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_stars": {
+          "name": "price_stars",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "color": {
+          "name": "color",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finish": {
+          "name": "finish",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coins": {
+          "name": "coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revives": {
+          "name": "revives",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "grants": {
+          "name": "grants",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "items_kind_check": {
+          "name": "items_kind_check",
+          "value": "\"Items\".\"kind\" IN ('kart', 'paint', 'wheels', 'trail', 'coin_pack', 'starter_pack')"
+        },
+        "items_prices_check": {
+          "name": "items_prices_check",
+          "value": "coalesce(\"Items\".\"price_coins\", 0) >= 0 AND coalesce(\"Items\".\"price_stars\", 1) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Maps": {
+      "name": "Maps",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "map_type": {
+          "name": "map_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Monthly_Leaderboards": {
+      "name": "Monthly_Leaderboards",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "best_score": {
+          "name": "best_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "loyalty_points": {
+          "name": "loyalty_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "days_active": {
+          "name": "days_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_active_date": {
+          "name": "last_active_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "runs_played": {
+          "name": "runs_played",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "playtime_seconds": {
+          "name": "playtime_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ads_watched_month": {
+          "name": "ads_watched_month",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "idx_monthly_best_score": {
+          "name": "idx_monthly_best_score",
+          "columns": [
+            {
+              "expression": "month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "\"best_score\" DESC",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "idx_monthly_loyalty": {
+          "name": "idx_monthly_loyalty",
+          "columns": [
+            {
+              "expression": "month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "\"loyalty_points\" DESC",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Monthly_Leaderboards_user_id_Telegram_Users_id_fk": {
+          "name": "Monthly_Leaderboards_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Monthly_Leaderboards",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "monthly_leaderboards_user_month_unique": {
+          "name": "monthly_leaderboards_user_month_unique",
+          "columns": [
+            "user_id",
+            "month"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Monthly_Rewards_Log": {
+      "name": "Monthly_Rewards_Log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "month": {
+          "name": "month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "leaderboard_type": {
+          "name": "leaderboard_type",
+          "type": "leaderboard_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rank_position": {
+          "name": "rank_position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "coins_rewarded": {
+          "name": "coins_rewarded",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_claimed": {
+          "name": "is_claimed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Monthly_Rewards_Log_user_id_Telegram_Users_id_fk": {
+          "name": "Monthly_Rewards_Log_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Monthly_Rewards_Log",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "rank_position_check": {
+          "name": "rank_position_check",
+          "value": "\"Monthly_Rewards_Log\".\"rank_position\" BETWEEN 1 AND 10"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Paints": {
+      "name": "Paints",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Payments": {
+      "name": "Payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_id": {
+          "name": "car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paint_id": {
+          "name": "paint_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wheel_id": {
+          "name": "wheel_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "character_id": {
+          "name": "character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stars_amount": {
+          "name": "stars_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telegram_charge_id": {
+          "name": "telegram_charge_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "payment_status_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_payments_user": {
+          "name": "idx_payments_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Payments_user_id_Telegram_Users_id_fk": {
+          "name": "Payments_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Payments_car_id_Cars_id_fk": {
+          "name": "Payments_car_id_Cars_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Payments_paint_id_Paints_id_fk": {
+          "name": "Payments_paint_id_Paints_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "paint_id"
+          ],
+          "tableTo": "Paints",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Payments_wheel_id_Wheels_id_fk": {
+          "name": "Payments_wheel_id_Wheels_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "wheel_id"
+          ],
+          "tableTo": "Wheels",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Payments_character_id_Characters_id_fk": {
+          "name": "Payments_character_id_Characters_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "Payments_map_id_Maps_id_fk": {
+          "name": "Payments_map_id_Maps_id_fk",
+          "tableFrom": "Payments",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Payments_telegram_charge_id_unique": {
+          "name": "Payments_telegram_charge_id_unique",
+          "columns": [
+            "telegram_charge_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "payments_item_check": {
+          "name": "payments_item_check",
+          "value": "num_nonnulls(\"Payments\".\"car_id\", \"Payments\".\"paint_id\", \"Payments\".\"wheel_id\", \"Payments\".\"character_id\", \"Payments\".\"map_id\") = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Player_Items": {
+      "name": "Player_Items",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "acquired_at": {
+          "name": "acquired_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Player_Items_user_id_Telegram_Users_id_fk": {
+          "name": "Player_Items_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Player_Items",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Player_Items_item_id_Items_id_fk": {
+          "name": "Player_Items_item_id_Items_id_fk",
+          "tableFrom": "Player_Items",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "tableTo": "Items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "Player_Items_user_id_item_id_pk": {
+          "name": "Player_Items_user_id_item_id_pk",
+          "columns": [
+            "user_id",
+            "item_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Player_Upgrades": {
+      "name": "Player_Upgrades",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "upgrade_id": {
+          "name": "upgrade_id",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost": {
+          "name": "cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bought_at": {
+          "name": "bought_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Player_Upgrades_user_id_Telegram_Users_id_fk": {
+          "name": "Player_Upgrades_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Player_Upgrades",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "Player_Upgrades_user_id_upgrade_id_level_pk": {
+          "name": "Player_Upgrades_user_id_upgrade_id_level_pk",
+          "columns": [
+            "user_id",
+            "upgrade_id",
+            "level"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_upgrades_level_check": {
+          "name": "player_upgrades_level_check",
+          "value": "\"Player_Upgrades\".\"level\" BETWEEN 1 AND 5"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Powerups": {
+      "name": "Powerups",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Referrals": {
+      "name": "Referrals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "inviter_user_id": {
+          "name": "inviter_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_user_id": {
+          "name": "invited_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "referral_status_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "qualified_at": {
+          "name": "qualified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_referrals_inviter": {
+          "name": "idx_referrals_inviter",
+          "columns": [
+            {
+              "expression": "inviter_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Referrals_inviter_user_id_Telegram_Users_id_fk": {
+          "name": "Referrals_inviter_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Referrals",
+          "columnsFrom": [
+            "inviter_user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Referrals_invited_user_id_Telegram_Users_id_fk": {
+          "name": "Referrals_invited_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Referrals",
+          "columnsFrom": [
+            "invited_user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Referrals_invited_user_id_unique": {
+          "name": "Referrals_invited_user_id_unique",
+          "columns": [
+            "invited_user_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Runs": {
+      "name": "Runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'running'"
+        },
+        "upgrades": {
+          "name": "upgrades",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wheels": {
+          "name": "wheels",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revived": {
+          "name": "revived",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coins": {
+          "name": "coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distance": {
+          "name": "distance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ticks": {
+          "name": "ticks",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_runs_user": {
+          "name": "idx_runs_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "idx_runs_finished": {
+          "name": "idx_runs_finished",
+          "columns": [
+            {
+              "expression": "finished_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "score",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Runs_user_id_Telegram_Users_id_fk": {
+          "name": "Runs_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Runs",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Star_Payments": {
+      "name": "Star_Payments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stars": {
+          "name": "stars",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "telegram_charge_id": {
+          "name": "telegram_charge_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_star_payments_user": {
+          "name": "idx_star_payments_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "Star_Payments_user_id_Telegram_Users_id_fk": {
+          "name": "Star_Payments_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Star_Payments",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        },
+        "Star_Payments_item_id_Items_id_fk": {
+          "name": "Star_Payments_item_id_Items_id_fk",
+          "tableFrom": "Star_Payments",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "tableTo": "Items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Star_Payments_run_id_Runs_id_fk": {
+          "name": "Star_Payments_run_id_Runs_id_fk",
+          "tableFrom": "Star_Payments",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "tableTo": "Runs",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Star_Payments_payload_unique": {
+          "name": "Star_Payments_payload_unique",
+          "columns": [
+            "payload"
+          ],
+          "nullsNotDistinct": false
+        },
+        "Star_Payments_telegram_charge_id_unique": {
+          "name": "Star_Payments_telegram_charge_id_unique",
+          "columns": [
+            "telegram_charge_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "star_payments_stars_check": {
+          "name": "star_payments_stars_check",
+          "value": "\"Star_Payments\".\"stars\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.Telegram_Users": {
+      "name": "Telegram_Users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "telegram_id": {
+          "name": "telegram_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profile_icon": {
+          "name": "profile_icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'https://placehold.co/150'"
+        },
+        "coins": {
+          "name": "coins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "all_time_high_score": {
+          "name": "all_time_high_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ads_watched_total": {
+          "name": "ads_watched_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "equipped_car_id": {
+          "name": "equipped_car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipped_paint_id": {
+          "name": "equipped_paint_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipped_wheel_id": {
+          "name": "equipped_wheel_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipped_character_id": {
+          "name": "equipped_character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipped_map_id": {
+          "name": "equipped_map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equipped": {
+          "name": "equipped",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "revives": {
+          "name": "revives",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_banned": {
+          "name": "is_banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Telegram_Users_equipped_car_id_Cars_id_fk": {
+          "name": "Telegram_Users_equipped_car_id_Cars_id_fk",
+          "tableFrom": "Telegram_Users",
+          "columnsFrom": [
+            "equipped_car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Telegram_Users_equipped_paint_id_Paints_id_fk": {
+          "name": "Telegram_Users_equipped_paint_id_Paints_id_fk",
+          "tableFrom": "Telegram_Users",
+          "columnsFrom": [
+            "equipped_paint_id"
+          ],
+          "tableTo": "Paints",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Telegram_Users_equipped_wheel_id_Wheels_id_fk": {
+          "name": "Telegram_Users_equipped_wheel_id_Wheels_id_fk",
+          "tableFrom": "Telegram_Users",
+          "columnsFrom": [
+            "equipped_wheel_id"
+          ],
+          "tableTo": "Wheels",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Telegram_Users_equipped_character_id_Characters_id_fk": {
+          "name": "Telegram_Users_equipped_character_id_Characters_id_fk",
+          "tableFrom": "Telegram_Users",
+          "columnsFrom": [
+            "equipped_character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "Telegram_Users_equipped_map_id_Maps_id_fk": {
+          "name": "Telegram_Users_equipped_map_id_Maps_id_fk",
+          "tableFrom": "Telegram_Users",
+          "columnsFrom": [
+            "equipped_map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "Telegram_Users_telegram_id_unique": {
+          "name": "Telegram_Users_telegram_id_unique",
+          "columns": [
+            "telegram_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Unlock_Progress": {
+      "name": "Unlock_Progress",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_id": {
+          "name": "car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paint_id": {
+          "name": "paint_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wheel_id": {
+          "name": "wheel_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "character_id": {
+          "name": "character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "progress": {
+          "name": "progress",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Unlock_Progress_user_id_Telegram_Users_id_fk": {
+          "name": "Unlock_Progress_user_id_Telegram_Users_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Unlock_Progress_car_id_Cars_id_fk": {
+          "name": "Unlock_Progress_car_id_Cars_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Unlock_Progress_paint_id_Paints_id_fk": {
+          "name": "Unlock_Progress_paint_id_Paints_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "paint_id"
+          ],
+          "tableTo": "Paints",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Unlock_Progress_wheel_id_Wheels_id_fk": {
+          "name": "Unlock_Progress_wheel_id_Wheels_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "wheel_id"
+          ],
+          "tableTo": "Wheels",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Unlock_Progress_character_id_Characters_id_fk": {
+          "name": "Unlock_Progress_character_id_Characters_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "Unlock_Progress_map_id_Maps_id_fk": {
+          "name": "Unlock_Progress_map_id_Maps_id_fk",
+          "tableFrom": "Unlock_Progress",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unlock_progress_user_car_unique": {
+          "name": "unlock_progress_user_car_unique",
+          "columns": [
+            "user_id",
+            "car_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "unlock_progress_user_paint_unique": {
+          "name": "unlock_progress_user_paint_unique",
+          "columns": [
+            "user_id",
+            "paint_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "unlock_progress_user_wheel_unique": {
+          "name": "unlock_progress_user_wheel_unique",
+          "columns": [
+            "user_id",
+            "wheel_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "unlock_progress_user_char_unique": {
+          "name": "unlock_progress_user_char_unique",
+          "columns": [
+            "user_id",
+            "character_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "unlock_progress_user_map_unique": {
+          "name": "unlock_progress_user_map_unique",
+          "columns": [
+            "user_id",
+            "map_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "unlock_progress_item_check": {
+          "name": "unlock_progress_item_check",
+          "value": "num_nonnulls(\"Unlock_Progress\".\"car_id\", \"Unlock_Progress\".\"paint_id\", \"Unlock_Progress\".\"wheel_id\", \"Unlock_Progress\".\"character_id\", \"Unlock_Progress\".\"map_id\") = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.User_Items": {
+      "name": "User_Items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "car_id": {
+          "name": "car_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paint_id": {
+          "name": "paint_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wheel_id": {
+          "name": "wheel_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "character_id": {
+          "name": "character_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unlocked_at": {
+          "name": "unlocked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_user_items_user": {
+          "name": "idx_user_items_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "User_Items_user_id_Telegram_Users_id_fk": {
+          "name": "User_Items_user_id_Telegram_Users_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Items_car_id_Cars_id_fk": {
+          "name": "User_Items_car_id_Cars_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "car_id"
+          ],
+          "tableTo": "Cars",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Items_paint_id_Paints_id_fk": {
+          "name": "User_Items_paint_id_Paints_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "paint_id"
+          ],
+          "tableTo": "Paints",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Items_wheel_id_Wheels_id_fk": {
+          "name": "User_Items_wheel_id_Wheels_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "wheel_id"
+          ],
+          "tableTo": "Wheels",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Items_character_id_Characters_id_fk": {
+          "name": "User_Items_character_id_Characters_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "character_id"
+          ],
+          "tableTo": "Characters",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Items_map_id_Maps_id_fk": {
+          "name": "User_Items_map_id_Maps_id_fk",
+          "tableFrom": "User_Items",
+          "columnsFrom": [
+            "map_id"
+          ],
+          "tableTo": "Maps",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_items_user_car_unique": {
+          "name": "user_items_user_car_unique",
+          "columns": [
+            "user_id",
+            "car_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "user_items_user_paint_unique": {
+          "name": "user_items_user_paint_unique",
+          "columns": [
+            "user_id",
+            "paint_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "user_items_user_wheel_unique": {
+          "name": "user_items_user_wheel_unique",
+          "columns": [
+            "user_id",
+            "wheel_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "user_items_user_char_unique": {
+          "name": "user_items_user_char_unique",
+          "columns": [
+            "user_id",
+            "character_id"
+          ],
+          "nullsNotDistinct": false
+        },
+        "user_items_user_map_unique": {
+          "name": "user_items_user_map_unique",
+          "columns": [
+            "user_id",
+            "map_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "user_items_item_check": {
+          "name": "user_items_item_check",
+          "value": "num_nonnulls(\"User_Items\".\"car_id\", \"User_Items\".\"paint_id\", \"User_Items\".\"wheel_id\", \"User_Items\".\"character_id\", \"User_Items\".\"map_id\") = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.User_Powerups": {
+      "name": "User_Powerups",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "powerup_id": {
+          "name": "powerup_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "unlocked_at": {
+          "name": "unlocked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_user_powerups_user": {
+          "name": "idx_user_powerups_user",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "User_Powerups_user_id_Telegram_Users_id_fk": {
+          "name": "User_Powerups_user_id_Telegram_Users_id_fk",
+          "tableFrom": "User_Powerups",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "Telegram_Users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "User_Powerups_powerup_id_Powerups_id_fk": {
+          "name": "User_Powerups_powerup_id_Powerups_id_fk",
+          "tableFrom": "User_Powerups",
+          "columnsFrom": [
+            "powerup_id"
+          ],
+          "tableTo": "Powerups",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_powerups_user_powerup_unique": {
+          "name": "user_powerups_user_powerup_unique",
+          "columns": [
+            "user_id",
+            "powerup_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Wheels": {
+      "name": "Wheels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_type": {
+          "name": "unlock_type",
+          "type": "unlock_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unlock_value": {
+          "name": "unlock_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_user_id_user_id_fk": {
+          "name": "account_user_id_user_id_fk",
+          "tableFrom": "account",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session": {
+      "name": "session",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "session_user_id_user_id_fk": {
+          "name": "session_user_id_user_id_fk",
+          "tableFrom": "session",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "session_token_unique": {
+          "name": "session_token_unique",
+          "columns": [
+            "token"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'user'"
+        },
+        "banned": {
+          "name": "banned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "ban_reason": {
+          "name": "ban_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ban_expires": {
+          "name": "ban_expires",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "columns": [
+            "email"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.verification": {
+      "name": "verification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.ad_purpose_enum": {
+      "name": "ad_purpose_enum",
+      "schema": "public",
+      "values": [
+        "REVIVE",
+        "UNLOCK_ITEM",
+        "COIN_BONUS"
+      ]
+    },
+    "public.coin_reason_enum": {
+      "name": "coin_reason_enum",
+      "schema": "public",
+      "values": [
+        "RUN",
+        "PURCHASE",
+        "MONTHLY_REWARD",
+        "AD",
+        "REFERRAL",
+        "REVIVE"
+      ]
+    },
+    "public.leaderboard_type_enum": {
+      "name": "leaderboard_type_enum",
+      "schema": "public",
+      "values": [
+        "TOP_SCORE",
+        "MOST_LOYAL"
+      ]
+    },
+    "public.payment_status_enum": {
+      "name": "payment_status_enum",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "COMPLETED",
+        "FAILED"
+      ]
+    },
+    "public.referral_status_enum": {
+      "name": "referral_status_enum",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "QUALIFIED"
+      ]
+    },
+    "public.run_status_enum": {
+      "name": "run_status_enum",
+      "schema": "public",
+      "values": [
+        "RUNNING",
+        "PAUSED",
+        "FINISHED",
+        "ABANDONED"
+      ]
+    },
+    "public.unlock_type_enum": {
+      "name": "unlock_type_enum",
+      "schema": "public",
+      "values": [
+        "FREE",
+        "COINS",
+        "STARS",
+        "SHARES",
+        "ADS"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

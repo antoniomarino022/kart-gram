@@ -22,6 +22,20 @@
       "when": 1792320262546,
       "tag": "0002_fluffy_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792335215044,
+      "tag": "0003_game_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792335868273,
+      "tag": "0004_seed_items",
+      "breakpoints": true
     }
   ]
 }

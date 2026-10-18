@@ -1,4 +1,4 @@
-import type { Profile } from "@/backend/types";
+import type { Profile } from "@/types/game";
 
 /** Applica il profilo restituito da una richiesta e restituisce il valore originale. */
 export type TrackProfile = <T extends Profile | null>(request: Promise<T>) => Promise<T>;

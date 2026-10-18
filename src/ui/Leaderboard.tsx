@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Backend, LeaderboardEntry, Profile } from "@/backend/types";
+import { getLeaderboard } from "@/lib/api";
+import type { LeaderboardEntry, Profile } from "@/types/game";
 import { errorText } from "./errors";
 import { Screen, Spinner } from "./kit";
 import { fmt } from "./loadout";
@@ -9,18 +10,18 @@ import { fmt } from "./loadout";
 type Scope = "global" | "weekly";
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export function Leaderboard({ backend, profile, toast, onBack }: { backend: Backend; profile: Profile; toast: (t: string) => void; onBack: () => void }) {
+export function Leaderboard({ profile, toast, onBack }: { profile: Profile; toast: (t: string) => void; onBack: () => void }) {
   const [scope, setScope] = useState<Scope>("global");
   const [data, setData] = useState<{ scope: Scope; entries: LeaderboardEntry[] | null } | null>(null);
 
   useEffect(() => {
     let alive = true;
-    backend.getLeaderboard(scope).then(
+    getLeaderboard(scope).then(
       (entries) => { if (alive) setData({ scope, entries }); },
       (err) => { if (alive) { setData({ scope, entries: null }); toast(errorText(err)); } },
     );
     return () => { alive = false; };
-  }, [backend, scope, toast]);
+  }, [scope, toast]);
 
   const shown = data?.scope === scope ? data : null;
 

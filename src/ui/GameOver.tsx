@@ -1,5 +1,5 @@
-import { REVIVE_PRICE } from "@/backend/catalog";
-import type { Profile, RevivePay } from "@/backend/types";
+import { REVIVE_PRICE } from "@/lib/constants";
+import type { Profile, RevivePay } from "@/types/game";
 import { CoinIcon } from "./kit";
 import { fmt } from "./loadout";
 

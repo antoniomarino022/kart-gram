@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CATALOG, DEFAULT_EQUIPPED } from "@/backend/catalog";
+import { DEFAULT_CATALOG, DEFAULT_EQUIPPED } from "@/lib/constants";
 import { buildLoadout } from "./loadout";
 
 describe("buildLoadout", () => {

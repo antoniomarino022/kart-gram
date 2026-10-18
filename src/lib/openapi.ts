@@ -1,3 +1,7 @@
+/**
+ * Specifica OpenAPI 3.0.3 completa di tutte le route REST di Kart-Gram
+ * (Game API, Admin API e Telegram Webhook), servita da `GET /api/docs`.
+ */
 export const openApiSpec = {
   openapi: "3.0.3",
   info: {
@@ -7,7 +11,7 @@ export const openApiSpec = {
 
 ### Autenticazione
 - **Game API (\`/api/game/*\`)**: Autenticate tramite header \`Authorization: tma <initData>\` contenente l'hash crittografico firmato da Telegram.
-- **Admin API (\`/api/admin/*\`)**: Autenticate tramite sessione Better Auth (cookie o token admin) riservate al ruolo amministratore.`,
+- **Admin API (\`/api/admin/*\`)**: Autenticate tramite sessione Better Auth (cookie di sessione) riservate al ruolo \`admin\`.`,
   },
   servers: [
     {
@@ -17,7 +21,7 @@ export const openApiSpec = {
   ],
   tags: [
     { name: "Game", description: "API di gioco per Telegram Mini App" },
-    { name: "Admin", description: "API amministrative per la gestione di catalogo e giocatori" },
+    { name: "Admin", description: "API amministrative per la gestione di catalogo, giocatori e pagamenti" },
     { name: "Telegram", description: "Webhook e integrazione bot Telegram" },
   ],
   paths: {
@@ -70,7 +74,7 @@ export const openApiSpec = {
     "/api/game/shop/coins": {
       post: {
         tags: ["Game"],
-        summary: "Acquista con monete",
+        summary: "Acquista un oggetto con le monete",
         requestBody: {
           required: true,
           content: {
@@ -110,19 +114,43 @@ export const openApiSpec = {
         },
       },
     },
+    "/api/game/upgrades": {
+      post: {
+        tags: ["Game"],
+        summary: "Potenzia un upgrade (turbo, magnet, slowmo, x2)",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  upgradeId: { type: "string", enum: ["turbo", "magnet", "slowmo", "x2"] },
+                },
+                required: ["upgradeId"],
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: "Potenziamento migliorato con successo" },
+          400: { description: "Monete insufficienti o livello massimo già raggiunto" },
+        },
+      },
+    },
     "/api/game/runs": {
       post: {
         tags: ["Game"],
         summary: "Inizia una nuova partita",
         responses: {
-          200: { description: "Restituisce runId e seed crittografico generato dal server" },
+          200: { description: "Restituisce runId, seed crittografico, upgrades e wheels" },
         },
       },
     },
     "/api/game/runs/{id}/finish": {
       post: {
         tags: ["Game"],
-        summary: "Conclude la partita e valida il punteggio",
+        summary: "Conclude la partita e valida il punteggio con replay server-side",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
@@ -135,12 +163,12 @@ export const openApiSpec = {
     "/api/game/runs/{id}/revive": {
       post: {
         tags: ["Game"],
-        summary: "Revive in-game",
+        summary: "Revive in-game (monete, Stelle o revive posseduto)",
         parameters: [
           { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
         ],
         responses: {
-          200: { description: "Revive applicato con successo" },
+          200: { description: "Revive applicato o link fattura Stelle restituito" },
         },
       },
     },
@@ -153,6 +181,27 @@ export const openApiSpec = {
         ],
         responses: {
           200: { description: "Top 50 giocatori recuperata" },
+        },
+      },
+    },
+    "/api/admin/stats": {
+      get: {
+        tags: ["Admin"],
+        summary: "Panoramica statistiche dashboard",
+        responses: {
+          200: { description: "Metriche giocatori, partite, Stelle e best score" },
+        },
+      },
+    },
+    "/api/admin/payments": {
+      get: {
+        tags: ["Admin"],
+        summary: "Storico paginato transazioni Telegram Stars",
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+        ],
+        responses: {
+          200: { description: "Elenco pagamenti in Stelle" },
         },
       },
     },
@@ -169,7 +218,31 @@ export const openApiSpec = {
         summary: "Crea un nuovo oggetto a catalogo",
         responses: {
           201: { description: "Oggetto creato" },
-          403: { description: "Solo amministratori" },
+          409: { description: "ID oggetto già esistente" },
+        },
+      },
+    },
+    "/api/admin/items/{id}": {
+      patch: {
+        tags: ["Admin"],
+        summary: "Aggiorna un oggetto del catalogo",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Oggetto aggiornato" },
+          404: { description: "Oggetto non trovato" },
+        },
+      },
+      delete: {
+        tags: ["Admin"],
+        summary: "Elimina un oggetto dal catalogo (se mai acquistato/assegnato)",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Oggetto eliminato" },
+          409: { description: "Oggetto già posseduto o pagato: disattivarlo invece di eliminarlo" },
         },
       },
     },
@@ -177,17 +250,61 @@ export const openApiSpec = {
       get: {
         tags: ["Admin"],
         summary: "Elenco giocatori con ricerca e paginazione",
+        parameters: [
+          { name: "q", in: "query", schema: { type: "string" } },
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+        ],
         responses: {
           200: { description: "Elenco giocatori" },
         },
       },
     },
-    "/api/admin/stats": {
+    "/api/admin/players/{id}": {
       get: {
         tags: ["Admin"],
-        summary: "Panoramica statistiche dashboard",
+        summary: "Dettaglio completo di un giocatore",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+        ],
         responses: {
-          200: { description: "Metriche e statistiche generali" },
+          200: { description: "Dossier giocatore (profilo, inventario, upgrade, partite, pagamenti, transazioni)" },
+          404: { description: "Giocatore non trovato" },
+        },
+      },
+      patch: {
+        tags: ["Admin"],
+        summary: "Modifica dati giocatore (monete, revive, record, nome, ban)",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+        ],
+        responses: {
+          200: { description: "Giocatore aggiornato" },
+          404: { description: "Giocatore non trovato" },
+        },
+      },
+    },
+    "/api/admin/players/{id}/items": {
+      post: {
+        tags: ["Admin"],
+        summary: "Regala/assegna un oggetto del catalogo al giocatore",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+        ],
+        responses: {
+          200: { description: "Oggetto assegnato e dossier aggiornato" },
+        },
+      },
+    },
+    "/api/admin/players/{id}/items/{itemId}": {
+      delete: {
+        tags: ["Admin"],
+        summary: "Revoca un oggetto dall'inventario del giocatore",
+        parameters: [
+          { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          { name: "itemId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        responses: {
+          200: { description: "Oggetto revocato e dossier aggiornato" },
         },
       },
     },

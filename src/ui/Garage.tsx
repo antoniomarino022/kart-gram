@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { MAX_UPGRADE_LEVEL, UPGRADE_COSTS } from "@/backend/catalog";
-import { buyWithStars } from "@/backend/purchase";
-import type { Backend, CatalogItem, Profile, Slot, UpgradeId } from "@/backend/types";
+import {
+  buyUpgrade,
+  buyWithCoins,
+  buyWithStars,
+  equip as equipApi,
+  getProfile,
+} from "@/lib/api";
+import { MAX_UPGRADE_LEVEL, UPGRADE_COSTS } from "@/lib/constants";
+import type { CatalogItem, Profile, Slot, UpgradeId } from "@/types/game";
 import { errorText } from "./errors";
 import { CoinIcon, Screen } from "./kit";
 import type { TrackProfile } from "./profileSync";
@@ -27,7 +33,6 @@ const UPGRADES: { id: UpgradeId; name: string; icon: string; perLevel: string }[
 ];
 
 interface Props {
-  backend: Backend;
   profile: Profile;
   catalog: CatalogItem[];
   track: TrackProfile;
@@ -35,7 +40,7 @@ interface Props {
   onBack: () => void;
 }
 
-export function Garage({ backend, profile, catalog, track, toast, onBack }: Props) {
+export function Garage({ profile, catalog, track, toast, onBack }: Props) {
   const [tab, setTab] = useState<Tab>("kart");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -47,26 +52,26 @@ export function Garage({ backend, profile, catalog, track, toast, onBack }: Prop
       await fn();
     } catch (err) {
       toast(errorText(err));
-      track(backend.getProfile()).catch(() => {});
+      track(getProfile()).catch(() => {});
     } finally {
       setBusy(null);
     }
   }
 
-  const equipSlot = (it: CatalogItem) => track(backend.equip(it.kind as Slot, it.id));
+  const equipSlot = (it: CatalogItem) => track(equipApi(it.kind as Slot, it.id));
   const equip = (it: CatalogItem) => act(it.id, async () => { await equipSlot(it); });
   // l'acquisto si applica subito; l'equipaggiamento è un passo separato, così se fallisce l'oggetto resta comprato
   const buyCoins = (it: CatalogItem) => act(it.id, async () => {
-    await track(backend.buyWithCoins(it.id));
+    await track(buyWithCoins(it.id));
     toast(`${it.name} sbloccato!`);
     await equipSlot(it);
   });
   const buyStars = (it: CatalogItem) => act(it.id, async () => {
-    if (!(await track(buyWithStars(backend, it)))) { toast("Pagamento non completato"); return; }
+    if (!(await track(buyWithStars(it)))) { toast("Pagamento non completato"); return; }
     toast(`${it.name} sbloccato!`);
     await equipSlot(it);
   });
-  const upgrade = (id: UpgradeId) => act(id, async () => { await track(backend.buyUpgrade(id)); toast("Potenziamento migliorato!"); });
+  const upgrade = (id: UpgradeId) => act(id, async () => { await track(buyUpgrade(id)); toast("Potenziamento migliorato!"); });
 
   const items = tab === "upgrades" ? [] : catalog.filter((i) => i.kind === tab);
 

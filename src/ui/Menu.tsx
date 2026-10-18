@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Profile } from "@/backend/types";
+import type { Profile } from "@/types/game";
 import { CoinBadge } from "./kit";
 import { fmt } from "./loadout";
 import { hapticsEnabled, setHapticsEnabled, uiHaptic } from "./settings";

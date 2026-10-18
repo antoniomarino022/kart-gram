@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Profile } from "@/backend/types";
+import type { Profile } from "@/types/game";
 import { createProfileTracker } from "./profileSync";
 
 const prof = (coins: number) => ({ coins }) as Profile;

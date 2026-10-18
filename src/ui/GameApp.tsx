@@ -1,14 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { getBackend, type CatalogItem, type Profile, type RevivePay } from "@/backend";
-import { payRevive } from "@/backend/purchase";
+import {
+  finishRun as finishRunApi,
+  getCatalog,
+  getProfile,
+  payRevive,
+  startRun,
+} from "@/lib/api";
 import { Game } from "@/game/Game";
 import { CONFIG } from "@/game/core/config";
 import { finalScore, NO_UPGRADES, type GameEvent, type UpgradeLevels } from "@/game/core/sim";
 import { ALL_MODEL_NAMES, type Loadout } from "@/game/render/GameRenderer";
 import { loadModels, type ModelLibrary } from "@/game/render/models";
 import { getTelegramUser, initTelegram } from "@/telegram/webapp";
+import type { CatalogItem, Profile, RevivePay } from "@/types/game";
 import { errorText } from "./errors";
 import { GameOver, type RunSummary } from "./GameOver";
 import { Garage } from "./Garage";
@@ -46,7 +52,6 @@ interface Ready {
 }
 
 export default function GameApp() {
-  const [backend] = useState(getBackend);
   const [boot, setBoot] = useState<"loading" | "error" | "ready">("loading");
   const [data, setData] = useState<Ready | null>(null);
   const [screen, setScreen] = useState<ScreenId>("menu");
@@ -76,15 +81,15 @@ export default function GameApp() {
     initTelegram();
     hapticsEnabled(); // carica la preferenza vibrazione nel gate prima della prima partita
     // il catalogo è facoltativo (spec: senza catalogo lo shop è disabilitato), il profilo no
-    const catalog = backend.getCatalog().then(
+    const catalog = getCatalog().then(
       (c) => ({ catalog: c, catalogOk: true }),
       (err) => { console.warn("[app] catalogo non disponibile", err); return { catalog: [] as CatalogItem[], catalogOk: false }; },
     );
-    Promise.all([track(backend.getProfile()), catalog, loadModels(ALL_MODEL_NAMES)]).then(
+    Promise.all([track(getProfile()), catalog, loadModels(ALL_MODEL_NAMES)]).then(
       ([profile, c, models]) => { setData({ profile, ...c, models }); setBoot("ready"); },
       (err) => { console.error("[app] caricamento fallito", err); setBoot("error"); },
     );
-  }, [backend, track]);
+  }, [track]);
 
   useEffect(load, [load]);
 
@@ -132,7 +137,7 @@ export default function GameApp() {
     // il server rigioca la partita con upgrade e ruote fissati all'avvio: il client usa gli stessi
     let upgrades = data.profile.upgrades, wheels: string | undefined;
     try {
-      const run = await backend.startRun();
+      const run = await startRun();
       ({ runId, seed } = run);
       if (run.upgrades) upgrades = run.upgrades;
       wheels = run.wheels;
@@ -168,7 +173,7 @@ export default function GameApp() {
     setSummary(null);
     setRunBiome(0);
     setScreen("playing");
-  }, [backend, data, starting, mountGame, onGameOver, popups]);
+  }, [data, starting, mountGame, onGameOver, popups]);
 
   /** Invia la partita finita (se salvabile) e aggiorna il profilo; non blocca la UI. */
   const finishRun = useCallback(() => {
@@ -177,19 +182,19 @@ export default function GameApp() {
     if (!game || !run || run.unsaved) return;
     const st = game.state;
     bestRef.current = Math.max(bestRef.current, finalScore(st));
-    track(backend.finishRun({
+    track(finishRunApi({
       runId: run.runId, score: finalScore(st), distance: Math.floor(st.kart.s), coins: st.coins,
       durationMs: game.durationMs, revived: st.revived, ticks: st.tick, inputs: game.inputs,
     }).then((r) => r.profile)).catch((err) => { console.warn("[app] finishRun fallito", err); show("Partita non salvata"); });
-  }, [backend, game, track, show]);
+  }, [game, track, show]);
 
   const revive = useCallback(async (pay: RevivePay) => {
     const run = runRef.current;
     if (!game || !run || busy) return;
     setBusy(true);
-    const refresh = () => { track(backend.getProfile()).catch(() => {}); }; // monete o revive scalati
+    const refresh = () => { track(getProfile()).catch(() => {}); }; // monete o revive scalati
     try {
-      if (!(await payRevive(backend, run.runId, pay))) {
+      if (!(await payRevive(run.runId, pay))) {
         show("Pagamento non completato");
       } else if (game.revive()) {
         setScreen("playing");
@@ -205,7 +210,7 @@ export default function GameApp() {
     } finally {
       setBusy(false);
     }
-  }, [backend, busy, game, track, show]);
+  }, [busy, game, track, show]);
 
   const toMenu = useCallback(() => { finishRun(); setGame(null); setScreen("menu"); }, [finishRun]);
   const retry = useCallback(() => { finishRun(); void play(); }, [finishRun, play]);
@@ -264,13 +269,13 @@ export default function GameApp() {
             />
           )}
           {screen === "garage" && (
-            <Garage backend={backend} profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
+            <Garage profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
           )}
           {screen === "shop" && (
-            <Shop backend={backend} profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
+            <Shop profile={profile} catalog={data.catalog} track={track} toast={show} onBack={() => setScreen("menu")} />
           )}
           {screen === "leaderboard" && (
-            <Leaderboard backend={backend} profile={profile} toast={show} onBack={() => setScreen("menu")} />
+            <Leaderboard profile={profile} toast={show} onBack={() => setScreen("menu")} />
           )}
         </>
       )}

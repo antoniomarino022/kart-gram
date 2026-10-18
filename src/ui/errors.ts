@@ -1,5 +1,5 @@
-import { BackendError } from "@/backend/types";
+import { ApiError } from "@/types/game";
 
-/** Messaggio per il toast: quello del backend se c'è, altrimenti uno generico. */
+/** Messaggio per il toast: quello dell'API se c'è, altrimenti uno generico. */
 export const errorText = (err: unknown, fallback = "Errore di connessione, riprova") =>
-  err instanceof BackendError && err.message ? err.message : fallback;
+  err instanceof ApiError && err.message ? err.message : fallback;

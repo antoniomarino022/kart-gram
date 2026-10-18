@@ -1,10 +1,11 @@
-import { Telegraf, Markup } from "telegraf";
-import { db } from "@/db";
-import { telegramUsers, referrals } from "@/db/schema";
-import { ReferralStatus } from "@/types/enums";
-import { eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
+import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
-import { checkPreCheckout, completeStarPayment, markRefunded } from "@/server/game/payments";
+import { db, withTx } from "@/db";
+import { items, referrals, runs, starPayments, telegramUsers } from "@/db/schema";
+import { grantItem, owns } from "@/lib/game-helpers";
+import { ReferralStatus } from "@/types/enums";
+import type { PaymentCheck } from "@/types/game";
 
 const token = process.env.BOT_API_KEY;
 
@@ -14,7 +15,173 @@ if (!token) {
 
 export const bot = new Telegraf(token);
 
-// Gestione comando /start (supporta anche deep link referral es. ?start=ref_123)
+// ---------------------------------------------------------------------------
+// Verifica e Consegna Pagamenti Telegram Stars
+// ---------------------------------------------------------------------------
+
+async function pendingPayment(check: PaymentCheck) {
+  if (check.currency !== "XTR") {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      payment: starPayments,
+      telegramId: telegramUsers.telegramId,
+    })
+    .from(starPayments)
+    .innerJoin(telegramUsers, eq(telegramUsers.id, starPayments.userId))
+    .where(eq(starPayments.payload, check.payload))
+    .limit(1);
+
+  const isValid =
+    row &&
+    row.payment.status === "pending" &&
+    row.telegramId === check.telegramId &&
+    row.payment.stars === check.amount;
+
+  return isValid ? row.payment : null;
+}
+
+async function checkPreCheckout(check: PaymentCheck): Promise<string | null> {
+  const payment = await pendingPayment(check);
+  if (!payment) {
+    return "Pagamento non valido o già completato";
+  }
+
+  if (payment.purpose === "revive") {
+    const [run] = await db
+      .select()
+      .from(runs)
+      .where(eq(runs.id, payment.runId ?? ""))
+      .limit(1);
+
+    if (!run || run.status !== "running" || run.revived) {
+      return "Revive non più disponibile";
+    }
+    return null;
+  }
+
+  const [item] = await db
+    .select()
+    .from(items)
+    .where(eq(items.id, payment.itemId ?? ""))
+    .limit(1);
+
+  if (!item || !item.isActive) {
+    return "Oggetto non più disponibile";
+  }
+
+  if (item.kind !== "coin_pack" && (await owns(db, payment.userId, item))) {
+    return "Oggetto già posseduto";
+  }
+
+  return null;
+}
+
+async function completeStarPayment(
+  check: PaymentCheck & { chargeId: string },
+): Promise<"delivered" | "refund"> {
+  return withTx(async (tx) => {
+    const [row] = await tx
+      .select({
+        payment: starPayments,
+        telegramId: telegramUsers.telegramId,
+      })
+      .from(starPayments)
+      .innerJoin(telegramUsers, eq(telegramUsers.id, starPayments.userId))
+      .where(eq(starPayments.payload, check.payload))
+      .for("update", { of: starPayments });
+
+    if (row?.payment.status === "paid" && row.payment.telegramChargeId === check.chargeId) {
+      return "delivered";
+    }
+
+    const isInvalid =
+      !row ||
+      row.payment.status !== "pending" ||
+      row.payment.stars !== check.amount ||
+      check.currency !== "XTR" ||
+      row.telegramId !== check.telegramId;
+
+    if (isInvalid) {
+      return "refund";
+    }
+
+    const { payment } = row;
+
+    if (payment.purpose === "revive") {
+      const revived = await tx
+        .update(runs)
+        .set({ revived: true })
+        .where(
+          and(
+            eq(runs.id, payment.runId ?? ""),
+            eq(runs.status, "running"),
+            eq(runs.revived, false),
+          ),
+        )
+        .returning({ id: runs.id });
+
+      if (revived.length === 0) {
+        await tx
+          .update(telegramUsers)
+          .set({ revives: sql`${telegramUsers.revives} + 1` })
+          .where(eq(telegramUsers.id, payment.userId));
+      }
+    } else {
+      const [item] = await tx
+        .select()
+        .from(items)
+        .where(eq(items.id, payment.itemId ?? ""))
+        .limit(1);
+
+      if (!item) {
+        return "refund";
+      }
+
+      if (item.kind !== "coin_pack" && (await owns(tx, payment.userId, item))) {
+        return "refund";
+      }
+
+      await grantItem(tx, payment.userId, item, "stars");
+    }
+
+    await tx
+      .update(starPayments)
+      .set({
+        status: "paid",
+        telegramChargeId: check.chargeId,
+        paidAt: new Date(),
+      })
+      .where(eq(starPayments.id, payment.id));
+
+    return "delivered";
+  });
+}
+
+async function markRefunded(payload: string, chargeId: string): Promise<void> {
+  await db
+    .update(starPayments)
+    .set({ status: "refunded", telegramChargeId: chargeId })
+    .where(and(eq(starPayments.payload, payload), eq(starPayments.status, "pending")));
+}
+
+function refundStars(userId: number, chargeId: string) {
+  const callApi = bot.telegram.callApi.bind(bot.telegram) as unknown as (
+    method: string,
+    payload: object,
+  ) => Promise<true>;
+  return callApi("refundStarPayment", {
+    user_id: userId,
+    telegram_payment_charge_id: chargeId,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Comandi e Eventi del Bot
+// ---------------------------------------------------------------------------
+
 bot.start(async (ctx) => {
   try {
     const telegramId = ctx.from.id;
@@ -22,7 +189,6 @@ bot.start(async (ctx) => {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
     const startPayload = ctx.startPayload?.trim() ?? "";
 
-    // Registra o recupera l'utente nel database
     const [existingUser] = await db
       .select()
       .from(telegramUsers)
@@ -30,9 +196,8 @@ bot.start(async (ctx) => {
       .limit(1);
 
     if (!existingUser) {
-      let profileIcon: string | undefined = undefined;
+      let profileIcon: string | undefined;
 
-      // Recupera la foto profilo da Telegram
       try {
         const photos = await ctx.telegram.getUserProfilePhotos(telegramId, 0, 1);
         if (photos.total_count > 0) {
@@ -53,7 +218,6 @@ bot.start(async (ctx) => {
         })
         .returning();
 
-      // Gestione referral se il nuovo utente è entrato tramite link (es. ?start=ref_123 o ?start=123)
       if (newUser && startPayload) {
         const rawRef = startPayload.startsWith("ref_")
           ? startPayload.slice(4)
@@ -61,19 +225,17 @@ bot.start(async (ctx) => {
         const inviterRefNumber = Number(rawRef);
 
         if (Number.isInteger(inviterRefNumber) && inviterRefNumber > 0) {
-          // Cerca l'invitante per id interno o per telegramId
           const [inviter] = await db
             .select({ id: telegramUsers.id })
             .from(telegramUsers)
             .where(
               or(
                 eq(telegramUsers.id, inviterRefNumber),
-                eq(telegramUsers.telegramId, inviterRefNumber)
-              )
+                eq(telegramUsers.telegramId, inviterRefNumber),
+              ),
             )
             .limit(1);
 
-          // Evita auto-inviti e registra il referral in stato PENDING
           if (inviter && inviter.id !== newUser.id) {
             await db
               .insert(referrals)
@@ -90,9 +252,7 @@ bot.start(async (ctx) => {
 
     await ctx.reply(
       `Ciao ${ctx.from.first_name}! 🏎️\nPronto a scendere in pista su Kart-Gram?`,
-      Markup.inlineKeyboard([
-        Markup.button.webApp("Gioca Ora 🏁", appUrl),
-      ])
+      Markup.inlineKeyboard([Markup.button.webApp("Gioca Ora 🏁", appUrl)]),
     );
   } catch (error) {
     console.error("Errore durante /start:", error);
@@ -100,11 +260,15 @@ bot.start(async (ctx) => {
   }
 });
 
-// Pagamenti in Stelle: Telegram chiede conferma prima di addebitare, poi avvisa a pagamento riuscito
 bot.on("pre_checkout_query", async (ctx) => {
-  const q = ctx.preCheckoutQuery;
+  const query = ctx.preCheckoutQuery;
   try {
-    const error = await checkPreCheckout({ payload: q.invoice_payload, telegramId: q.from.id, amount: q.total_amount, currency: q.currency });
+    const error = await checkPreCheckout({
+      payload: query.invoice_payload,
+      telegramId: query.from.id,
+      amount: query.total_amount,
+      currency: query.currency,
+    });
     await ctx.answerPreCheckoutQuery(error === null, error ?? undefined);
   } catch (error) {
     console.error("Errore pre_checkout_query:", error);
@@ -113,29 +277,39 @@ bot.on("pre_checkout_query", async (ctx) => {
 });
 
 bot.on(message("successful_payment"), async (ctx) => {
-  const p = ctx.message.successful_payment;
-  const chargeId = p.telegram_payment_charge_id;
+  const payment = ctx.message.successful_payment;
+  const chargeId = payment.telegram_payment_charge_id;
   let result: "delivered" | "refund";
+
   try {
-    result = await completeStarPayment({ payload: p.invoice_payload, telegramId: ctx.from.id, amount: p.total_amount, currency: p.currency, chargeId });
+    result = await completeStarPayment({
+      payload: payment.invoice_payload,
+      telegramId: ctx.from.id,
+      amount: payment.total_amount,
+      currency: payment.currency,
+      chargeId,
+    });
   } catch (error) {
-    // Telegram non ripete l'avviso: se la consegna fallisce le Stelle tornano al giocatore
     console.error("Errore consegna pagamento:", chargeId, error);
     result = "refund";
   }
-  if (result === "delivered") return;
+
+  if (result === "delivered") {
+    return;
+  }
+
   try {
     await refundStars(ctx.from.id, chargeId);
   } catch (error) {
     console.error("Rimborso non riuscito, da gestire a mano:", chargeId, error);
     return;
   }
-  await ctx.reply("Non è stato possibile completare l'acquisto: le Stelle ti sono state restituite.").catch(() => {});
-  await markRefunded(p.invoice_payload, chargeId).catch((error) => console.error("Rimborso fatto ma non registrato:", chargeId, error));
-});
 
-/** refundStarPayment della Bot API (Telegraf 4.16 non ha ancora il metodo tipizzato). */
-function refundStars(userId: number, chargeId: string) {
-  const callApi = bot.telegram.callApi.bind(bot.telegram) as unknown as (method: string, payload: object) => Promise<true>;
-  return callApi("refundStarPayment", { user_id: userId, telegram_payment_charge_id: chargeId });
-}
+  await ctx
+    .reply("Non è stato possibile completare l'acquisto: le Stelle ti sono state restituite.")
+    .catch(() => {});
+
+  await markRefunded(payment.invoice_payload, chargeId).catch((error) =>
+    console.error("Rimborso fatto ma non registrato:", chargeId, error),
+  );
+});

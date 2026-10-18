@@ -1,13 +1,26 @@
-import { handle } from "@/server/http";
-import { requireAdmin } from "@/server/admin/auth";
-import { revokeFromPlayer } from "@/server/admin/players";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { playerItems } from "@/db/schema";
+import { requireAdmin } from "@/lib/auth";
+import { handle } from "@/lib/http";
 import type { PlayerItemParamContext } from "@/types/admin";
-import { playerIdFrom } from "../../params";
+import { loadPlayerDetail, parsePlayerId } from "../../params";
 
-/** DELETE /api/admin/players/:id/items/:itemId - toglie un oggetto posseduto */
+/**
+ * DELETE /api/admin/players/:id/items/:itemId
+ *
+ * Rimuove un oggetto posseduto (`Player_Items`) dall'inventario del giocatore
+ * e restituisce il dettaglio giocatore aggiornato.
+ */
 export const DELETE = handle(async (request: Request, context: PlayerItemParamContext) => {
   await requireAdmin(request);
-  const playerId = await playerIdFrom(context);
+
+  const playerId = await parsePlayerId(context);
   const { itemId } = await context.params;
-  return revokeFromPlayer(playerId, itemId);
+
+  await db
+    .delete(playerItems)
+    .where(and(eq(playerItems.userId, playerId), eq(playerItems.itemId, itemId)));
+
+  return loadPlayerDetail(playerId);
 });

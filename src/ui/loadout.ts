@@ -1,5 +1,5 @@
-import { DEFAULT_EQUIPPED } from "@/backend/catalog";
-import type { CatalogItem, Profile } from "@/backend/types";
+import { DEFAULT_EQUIPPED } from "@/lib/constants";
+import type { CatalogItem, Profile } from "@/types/game";
 import type { Loadout } from "@/game/render/GameRenderer";
 
 /** Loadout del renderer dagli oggetti equipaggiati; se un id non è nel catalogo usa quello di default. */

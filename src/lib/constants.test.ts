@@ -1,8 +1,7 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { DEFAULT_CATALOG } from "@/backend/catalog";
+import { describe, expect, it } from "vitest";
+import { DEFAULT_CATALOG, isFree, toCatalogItem } from "@/lib/constants";
 import type { ItemRow } from "@/types/game";
-import { isFree, toCatalogItem } from "./catalog";
 
 const row = (i: (typeof DEFAULT_CATALOG)[number], n: number): ItemRow => ({
   id: i.id,
@@ -26,7 +25,7 @@ describe("catalogo dal DB", () => {
     DEFAULT_CATALOG.forEach((item, n) => expect(toCatalogItem(row(item, n))).toEqual(item));
   });
 
-  it("gratis = 0 monete e non venduto in Stelle, come i posseduti iniziali del mock", () => {
+  it("gratis = 0 monete e non venduto in Stelle", () => {
     const free = DEFAULT_CATALOG.map(row).filter(isFree).map((r) => r.id);
     expect(free).toEqual(DEFAULT_CATALOG.filter((i) => i.priceCoins === 0).map((i) => i.id));
   });

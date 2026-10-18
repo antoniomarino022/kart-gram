@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { isRemoteBackend } from "@/backend";
-import { buyWithStars } from "@/backend/purchase";
-import type { Backend, CatalogItem, Profile } from "@/backend/types";
+import { buyWithStars, getProfile } from "@/lib/api";
+import type { CatalogItem, Profile } from "@/types/game";
 import { errorText } from "./errors";
 import { Screen } from "./kit";
 import type { TrackProfile } from "./profileSync";
@@ -14,7 +13,6 @@ const KIND_LABEL: Record<string, string> = { kart: "Kart", paint: "Vernice", whe
 const PACK_ICONS = ["💰", "🧰", "🏦"];
 
 interface Props {
-  backend: Backend;
   profile: Profile;
   catalog: CatalogItem[];
   track: TrackProfile;
@@ -22,19 +20,19 @@ interface Props {
   onBack: () => void;
 }
 
-export function Shop({ backend, profile, catalog, track, toast, onBack }: Props) {
+export function Shop({ profile, catalog, track, toast, onBack }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function buy(it: CatalogItem) {
     if (busy) return;
     setBusy(it.id);
     try {
-      const p = await track(buyWithStars(backend, it));
+      const p = await track(buyWithStars(it));
       if (!p) { toast("Pagamento non completato"); return; }
       toast(it.kind === "coin_pack" ? `+${fmt(it.coins ?? 0)} 🪙` : `${it.name} sbloccato!`);
     } catch (err) {
       toast(errorText(err));
-      track(backend.getProfile()).catch(() => {});
+      track(getProfile()).catch(() => {});
     } finally {
       setBusy(null);
     }
@@ -48,11 +46,6 @@ export function Shop({ backend, profile, catalog, track, toast, onBack }: Props)
 
   return (
     <Screen title="Shop" coins={profile.coins} onBack={onBack}>
-      {!isRemoteBackend() && (
-        <div className="mb-3 inline-block rounded-[var(--ui-radius)] bg-ui-primary px-2.5 py-1 text-sm font-extrabold text-ui-primary-text">
-          Modalità test: Stelle gratis
-        </div>
-      )}
 
       {starter && (
         <div className="animate-pop relative mb-5 overflow-hidden rounded-[var(--ui-radius)] bg-ui-primary p-4 text-ui-primary-text">

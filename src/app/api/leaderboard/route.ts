@@ -4,9 +4,6 @@ import { telegramUsers, referrals } from "@/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import type { LeaderboardsOverviewResponse } from "@/schemas/leaderboards";
 
-// Risposta sempre dinamica in tempo reale (nessuna cache statica)
-export const dynamic = "force-dynamic";
-
 /**
  * GET /api/leaderboard - Recupera la Top 10 giocatori per punteggio (topScore)
  * e la Top 10 giocatori più fedeli per numero di referral/condivisioni (mostLoyal)

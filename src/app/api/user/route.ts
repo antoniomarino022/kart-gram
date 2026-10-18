@@ -5,8 +5,6 @@ import { eq } from "drizzle-orm";
 import { validateTelegramInitData } from "@/telegram/validate";
 import type { TelegramUserProfileResponse } from "@/schemas/telegramUsers";
 
-export const dynamic = "force-dynamic";
-
 /**
  * GET /api/user - Recupera il profilo completo del giocatore, gli oggetti sbloccati (userItems),
  * i progressi di sblocco (unlockProgress) e i suoi referral.

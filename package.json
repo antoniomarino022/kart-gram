@@ -12,7 +12,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:backup": "node --env-file=.env scripts/backup-db.mjs",
+    "db:restore": "node --env-file=.env scripts/restore-db.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
@@ -37,6 +39,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "pg": "^8.23.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.4"

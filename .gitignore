@@ -46,3 +46,6 @@ next-env.d.ts
 
 # worktree degli agenti
 .claude/worktrees/
+
+# backup dei dati del DB (npm run db:backup): contengono dati dei giocatori
+/backups

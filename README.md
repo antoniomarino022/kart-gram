@@ -5,13 +5,13 @@ Tieni premuto a sinistra o a destra dello schermo per derapare da quella parte, 
 Lo scopo è fare lo score più alto possibile.
 
 - **Frontend / gioco** (questo team): Next.js 16 + React 19 + three.js + Tailwind 4
-- **Backend** (API, pagamenti Telegram Stars, classifiche): lo sviluppa un collega e rispetta il contratto in `src/backend/types.ts`
+- **Backend** nello stesso progetto: API del gioco in `src/app/api/game` (contratto `src/backend/types.ts`), API della dashboard admin in `src/app/api/admin`, DB Postgres (Neon) con Drizzle, bot e pagamenti in Stelle con Telegraf
 
 ## Avvio
 
 ```bash
 npm install
-cp .env.example .env.local   # NEXT_PUBLIC_BACKEND=mock per lavorare senza backend
+cp .env.example .env.local   # sul PC il gioco usa il mock, dentro Telegram il DB
 npm run dev
 ```
 
@@ -39,8 +39,12 @@ Il kart va avanti da solo e va dritto finché non sterzi: la strada non lo guida
 
 | Variabile | Valori | Descrizione |
 |---|---|---|
-| `NEXT_PUBLIC_BACKEND` | `mock` \| `remote` | `mock` salva tutto in `localStorage` (sviluppo), `remote` usa le API reali (produzione) |
-| `NEXT_PUBLIC_API_URL` | URL | Base URL delle API, usata solo con `remote` |
+| `NEXT_PUBLIC_BACKEND` | `auto` \| `mock` \| `remote` | `auto` (default): `remote` dentro Telegram, `mock` nel browser del PC. `mock` salva tutto in `localStorage`, `remote` usa le API del gioco |
+| `NEXT_PUBLIC_API_URL` | URL | Base URL delle API del gioco (default `/api/game`) |
+| `DATABASE_URL` | URL | Postgres (Neon) |
+| `BOT_API_KEY` | token | Bot Telegram: firma di initData, fatture in Stelle, webhook |
+| `TELEGRAM_WEBHOOK_SECRET` | stringa | Facoltativo: `secret_token` passato a `setWebhook`, il webhook rifiuta gli update senza |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `DASHBOARD_URL` | | Login della dashboard admin (account creati a mano nel DB) |
 | `NEXT_PUBLIC_MOCK_COINS` | numero | Solo `mock`: monete iniziali |
 
 Con `mock` gli acquisti in Stelle sono **gratuiti**: l'oggetto viene sbloccato subito, senza pagamento. Per azzerare i dati del mock basta svuotare il `localStorage` del sito (DevTools → Application).
@@ -55,7 +59,9 @@ kart-gram/
 │   ├── ui/                # Grafiche della UI: bottoni, icone, sfondi, logo
 │   └── fonts/             # Font custom (woff2)
 ├── scripts/
-│   └── generate-models.mjs # Genera i modelli segnaposto (box, cilindri) in public/models/
+│   ├── generate-models.mjs # Genera i modelli segnaposto (box, cilindri) in public/models/
+│   ├── backup-db.mjs      # npm run db:backup: dati del DB in backups/<data>/ (esclusa da git)
+│   └── restore-db.mjs     # npm run db:restore -- backups/<data>: reinserisce le righe mancanti
 ├── docs/
 │   └── superpowers/specs/ # Documenti di design
 └── src/
@@ -73,7 +79,9 @@ kart-gram/
     │   ├── mock.ts        #   implementazione finta con localStorage
     │   ├── remote.ts      #   implementazione con chiamate HTTP a NEXT_PUBLIC_API_URL
     │   └── index.ts       #   sceglie mock o remote in base a NEXT_PUBLIC_BACKEND
-    └── telegram/          # Wrapper dell'SDK WebApp: initData, haptics, openInvoice, fullscreen
+    ├── server/            # Logica del backend: auth Telegram, catalogo, partite (replay anti-cheat), negozio, Stelle, admin
+    ├── db/                # Schema Drizzle (migrazioni in drizzle/)
+    └── telegram/          # Wrapper dell'SDK WebApp (client), bot Telegraf e validazione initData (server)
 ```
 
 ### Regole
@@ -82,6 +90,8 @@ kart-gram/
 - **React non aggiorna lo stato a 60 fps.** Il loop di gioco gira fuori da React e la UI riceve solo eventi (game over, monete, record).
 - **Il gioco parla col backend solo tramite `src/backend`.** Nessuna `fetch` sparsa nel codice.
 - **Pagamenti in Stars:** il client apre la fattura con `openInvoice(link)`. Gli oggetti li assegna **solo** il backend, dopo `successful_payment`.
+- **Anti-cheat:** a fine partita il server rigioca seed + input con `simulate()` di `game/core` e salva il suo punteggio, non quello del client.
+- **DB:** si modifica `src/db/schema.ts`, poi `npm run db:generate` e `npm run db:migrate`; mai `db:push` sul DB online. Prima di ogni migrazione `npm run db:backup`.
 
 ## Grafiche
 

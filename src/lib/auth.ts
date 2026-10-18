@@ -25,10 +25,12 @@ export const auth = betterAuth({
     enabled: true,
   },
   trustedOrigins: [
-    process.env.DASHBOARD_URL!,
-    process.env.NEXT_PUBLIC_APP_URL!,
-    process.env.BETTER_AUTH_URL!,
-  ].filter(Boolean),
+    process.env.DASHBOARD_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.BETTER_AUTH_URL,
+  ]
+    .filter((url): url is string => Boolean(url))
+    .map((url) => url.replace(/\/+$/, "")),
   advanced: {
     defaultCookieAttributes: {
       sameSite: "none",

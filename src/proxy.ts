@@ -1,21 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const allowedOrigins = [
+  process.env.DASHBOARD_URL,
+  process.env.NEXT_PUBLIC_APP_URL,
+  process.env.BETTER_AUTH_URL,
+]
+  .filter((url): url is string => Boolean(url))
+  .map((url) => url.replace(/\/+$/, ""));
+
 /**
- * Middleware per la gestione universale di CORS sulle API
+ * Middleware per la gestione di CORS sulle API (solo origini autorizzate)
  */
 export function proxy(request: NextRequest) {
   const origin = request.headers.get("origin");
+  const isAllowedOrigin = Boolean(origin && allowedOrigins.includes(origin));
 
-  // 1. Gestione richieste preflight (OPTIONS)
+  // Gestione richieste preflight (OPTIONS)
   if (request.method === "OPTIONS") {
-    const response = new NextResponse(null, { status: 204 });
-
-    if (origin) {
-      response.headers.set("Access-Control-Allow-Origin", origin);
-      response.headers.set("Access-Control-Allow-Credentials", "true");
+    if (!isAllowedOrigin) {
+      return new NextResponse(null, { status: 403 });
     }
 
+    const response = new NextResponse(null, { status: 204 });
+    response.headers.set("Access-Control-Allow-Origin", origin!);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
     response.headers.set(
       "Access-Control-Allow-Methods",
       "GET, POST, PUT, PATCH, DELETE, OPTIONS",
@@ -31,7 +40,7 @@ export function proxy(request: NextRequest) {
 
   const response = NextResponse.next();
 
-  if (origin) {
+  if (isAllowedOrigin && origin) {
     response.headers.set("Access-Control-Allow-Origin", origin);
     response.headers.set("Access-Control-Allow-Credentials", "true");
   }

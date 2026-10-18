@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { telegramUsers, referrals } from "@/db/schema";
 import { ReferralStatus } from "@/types/enums";
 import { eq, or } from "drizzle-orm";
+import { message } from "telegraf/filters";
+import { checkPreCheckout, completeStarPayment, markRefunded } from "@/server/game/payments";
 
 const token = process.env.BOT_API_KEY;
 
@@ -97,3 +99,43 @@ bot.start(async (ctx) => {
     await ctx.reply("Si è verificato un errore durante l'avvio del gioco. Riprova tra poco.");
   }
 });
+
+// Pagamenti in Stelle: Telegram chiede conferma prima di addebitare, poi avvisa a pagamento riuscito
+bot.on("pre_checkout_query", async (ctx) => {
+  const q = ctx.preCheckoutQuery;
+  try {
+    const error = await checkPreCheckout({ payload: q.invoice_payload, telegramId: q.from.id, amount: q.total_amount, currency: q.currency });
+    await ctx.answerPreCheckoutQuery(error === null, error ?? undefined);
+  } catch (error) {
+    console.error("Errore pre_checkout_query:", error);
+    await ctx.answerPreCheckoutQuery(false, "Errore temporaneo, riprova tra poco");
+  }
+});
+
+bot.on(message("successful_payment"), async (ctx) => {
+  const p = ctx.message.successful_payment;
+  const chargeId = p.telegram_payment_charge_id;
+  let result: "delivered" | "refund";
+  try {
+    result = await completeStarPayment({ payload: p.invoice_payload, telegramId: ctx.from.id, amount: p.total_amount, currency: p.currency, chargeId });
+  } catch (error) {
+    // Telegram non ripete l'avviso: se la consegna fallisce le Stelle tornano al giocatore
+    console.error("Errore consegna pagamento:", chargeId, error);
+    result = "refund";
+  }
+  if (result === "delivered") return;
+  try {
+    await refundStars(ctx.from.id, chargeId);
+  } catch (error) {
+    console.error("Rimborso non riuscito, da gestire a mano:", chargeId, error);
+    return;
+  }
+  await ctx.reply("Non è stato possibile completare l'acquisto: le Stelle ti sono state restituite.").catch(() => {});
+  await markRefunded(p.invoice_payload, chargeId).catch((error) => console.error("Rimborso fatto ma non registrato:", chargeId, error));
+});
+
+/** refundStarPayment della Bot API (Telegraf 4.16 non ha ancora il metodo tipizzato). */
+function refundStars(userId: number, chargeId: string) {
+  const callApi = bot.telegram.callApi.bind(bot.telegram) as unknown as (method: string, payload: object) => Promise<true>;
+  return callApi("refundStarPayment", { user_id: userId, telegram_payment_charge_id: chargeId });
+}

@@ -1,5 +1,8 @@
 import crypto from "crypto";
 
+/** Validità di initData dopo la firma di Telegram (la mini app lo rigenera a ogni apertura). */
+const MAX_AGE_SECONDS = 6 * 60 * 60;
+
 export interface ValidatedTelegramUser {
   id: number;
   first_name: string;
@@ -35,7 +38,7 @@ export function validateTelegramInitData(initData: string): {
 
     // Ordina alfabeticamente i parametri per calcolare la firma
     const dataCheckString = Array.from(urlParams.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
       .map(([key, value]) => `${key}=${value}`)
       .join("\n");
 
@@ -51,7 +54,15 @@ export function validateTelegramInitData(initData: string): {
       .update(dataCheckString)
       .digest("hex");
 
-    if (calculatedHash !== hash) {
+    const expected = Buffer.from(calculatedHash, "hex");
+    const received = Buffer.from(hash, "hex");
+    if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
+      return { isValid: false, user: null };
+    }
+
+    // initData firmato ma vecchio: un valore intercettato non deve valere per sempre
+    const authDate = Number(urlParams.get("auth_date"));
+    if (!Number.isFinite(authDate) || Date.now() / 1000 - authDate > MAX_AGE_SECONDS) {
       return { isValid: false, user: null };
     }
 

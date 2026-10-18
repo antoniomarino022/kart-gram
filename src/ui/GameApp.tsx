@@ -96,7 +96,7 @@ export default function GameApp() {
     const canvas = canvasRef.current;
     if (!canvas || !data) return null;
     mounted.current?.game.destroy();
-    const g = new Game({ canvas, models: data.models, loadout: opts.loadout, seed: opts.seed, upgrades: opts.upgrades, onEvent: opts.onEvent });
+    const g = new Game({ canvas, models: data.models, loadout: opts.loadout, wheels: data.profile.equipped.wheels, seed: opts.seed, upgrades: opts.upgrades, onEvent: opts.onEvent });
     mounted.current = { game: g, key: loadoutKey(opts.loadout) };
     g.start();
     if (opts.demo) g.pause(); // disegna un frame e poi resta ferma

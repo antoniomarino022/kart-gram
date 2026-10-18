@@ -63,10 +63,10 @@ export class Game {
   private needsFrame = true;
   private cleanups: (() => void)[] = [];
 
-  constructor(opts: { canvas: HTMLCanvasElement; models: ModelLibrary; loadout: Loadout; seed: number; upgrades: UpgradeLevels; onEvent: (e: GameEvent) => void }) {
+  constructor(opts: { canvas: HTMLCanvasElement; models: ModelLibrary; loadout: Loadout; wheels: string; seed: number; upgrades: UpgradeLevels; onEvent: (e: GameEvent) => void }) {
     this.canvas = opts.canvas;
     this.onEvent = opts.onEvent;
-    this.state = createGame(opts.seed, opts.upgrades);
+    this.state = createGame(opts.seed, opts.upgrades, { wheels: opts.wheels });
     this.prevPose = copyPose(this.state.kart, { x: 0, y: 0, angle: 0, moveAngle: 0, yawRate: 0, elevation: 0 });
     this.renderer = new GameRenderer(opts.canvas, opts.models, opts.loadout);
   }

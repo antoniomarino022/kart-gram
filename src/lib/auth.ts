@@ -17,12 +17,15 @@ export const auth = betterAuth({
     additionalFields: {
       role: {
         type: "string",
-        defaultValue: "admin",
+        defaultValue: "user",
+        input: false,
       },
     },
   },
   emailAndPassword: {
     enabled: true,
+    // admin creati a mano: la registrazione pubblica darebbe accesso alla dashboard a chiunque
+    disableSignUp: true,
   },
   trustedOrigins: [
     process.env.DASHBOARD_URL,

@@ -41,8 +41,8 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          DATABASE_URL: ${{ secrets.DATABASE_URL}
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL  }}
           DASHBOARD_URL: ${{ secrets.DASHBOARD_URL }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}

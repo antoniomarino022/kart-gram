@@ -69,12 +69,14 @@ export interface GameState {
   biome: number;
   /** Ultima sterzata diversa da 0 (per l'olio e il renderer). */
   lastSteer: -1 | 1;
+  /** Sensibilità dello sterzo data dalle ruote equipaggiate (CONFIG.wheelSteer). */
+  steerSensitivity: number;
   events: GameEvent[];
 }
 
 const TIMED: Exclude<PowerupKind, "shield" | "heart">[] = ["turbo", "magnet", "wide", "slowmo", "x2"];
 
-export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, opts: { spawnItems?: boolean } = {}): GameState {
+export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, opts: { spawnItems?: boolean; wheels?: string } = {}): GameState {
   const track = createTrack(seed, opts);
   extendTrack(track, CONFIG.lookAhead);
   return {
@@ -99,6 +101,7 @@ export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, 
     revived: false,
     biome: 0,
     lastSteer: 1,
+    steerSensitivity: (opts.wheels && CONFIG.wheelSteer[opts.wheels]) || 1,
     events: [],
   };
 }
@@ -171,7 +174,7 @@ export function step(st: GameState, steer: Steer): GameState {
   // la strada non decide nulla: si gira solo con la sterzata (o sull'olio), altrimenti si va dritti
   if (steer !== 0) st.lastSteer = steer;
   const drifting = steer !== 0 || oil;
-  steerKart(k, drifting ? steer || st.lastSteer : 0, speed, { ice, oil }, dt);
+  steerKart(k, drifting ? steer || st.lastSteer : 0, speed, { ice, oil }, dt, st.steerSensitivity);
   k.drifting = drifting;
 
   k.x += Math.cos(k.moveAngle) * speed * dt;
@@ -206,7 +209,8 @@ export function step(st: GameState, steer: Steer): GameState {
   }
 
   handleItems(st, dt);
-  if (st.phase === "running" && Math.abs(k.lateral) > halfWidth) startFall(st);
+  // si cade solo quando il kart è uscito del tutto (più fallGrace): col centro appena fuori si resta in strada
+  if (st.phase === "running" && Math.abs(k.lateral) > halfWidth + CONFIG.kartHalfWidth + CONFIG.fallGrace) startFall(st);
 
   st.combo = Math.min(CONFIG.comboMax, 1 + Math.floor(st.comboPoints / CONFIG.comboStep));
   return st;
@@ -228,9 +232,9 @@ export function revive(st: GameState): boolean {
 export function simulate(
   seed: number,
   inputs: [number, Steer][],
-  opts: { upgrades?: UpgradeLevels; revived?: boolean; maxTicks?: number } = {},
+  opts: { upgrades?: UpgradeLevels; wheels?: string; revived?: boolean; maxTicks?: number } = {},
 ): GameState {
-  const st = createGame(seed, opts.upgrades);
+  const st = createGame(seed, opts.upgrades, { wheels: opts.wheels });
   const max = opts.maxTicks ?? CONFIG.maxTicks;
   let steer: Steer = 0, i = 0;
   while (st.tick < max) {

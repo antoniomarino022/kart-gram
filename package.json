@@ -19,16 +19,13 @@
     "@tanstack/react-query": "^5.104.3",
     "axios": "^1.20.0",
     "better-auth": "^1.7.10",
-    "dotenv": "^18.0.8",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.0",
-    "phaser": "^3.90.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "telegraf": "^4.16.3",
     "three": "^0.186.1",
-    "zod": "^4.6.7",
-    "zustand": "^5.0.15"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -36,6 +33,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
+    "dotenv": "^18.0.8",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",

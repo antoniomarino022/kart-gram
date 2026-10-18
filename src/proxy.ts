@@ -31,7 +31,7 @@ export function proxy(request: NextRequest) {
     );
     response.headers.set(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, x-admin-secret, Cookie",
+      "Content-Type, Authorization, Cookie",
     );
     response.headers.set("Access-Control-Max-Age", "86400");
 

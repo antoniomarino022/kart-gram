@@ -22,14 +22,15 @@ const YAW_EPS = 0.01;
  * Un tick di sterzata. `steer`: -1, 0 o 1 (già risolto per l'olio). Deterministico: solo aritmetica e Math.exp/atan2.
  * - la velocità angolare sale verso `steer × speed / turnRadius` in ~yawRiseTime e scende in ~yawFallTime (più lento sul ghiaccio);
  * - la direzione di moto insegue il muso con un'aderenza per metro percorso, così la derapata ha la stessa forma a ogni velocità.
+ * `sensitivity` (ruote, 1 = base) riduce la velocità angolare massima e allunga il tempo di salita.
  */
-export function steerKart(k: KartMotion, steer: number, speed: number, surface: { ice: boolean; oil: boolean }, dt: number) {
+export function steerKart(k: KartMotion, steer: number, speed: number, surface: { ice: boolean; oil: boolean }, dt: number, sensitivity = 1) {
   const h = CONFIG.handling;
-  const maxRate = (speed / CONFIG.turnRadius) * (surface.ice ? CONFIG.iceGrip : 1);
+  const maxRate = (speed / CONFIG.turnRadius) * (surface.ice ? CONFIG.iceGrip : 1) * sensitivity;
   const target = steer * maxRate;
   // in salita (o cambiando lato) risposta rapida, al rilascio un po' più dolce
   const rising = target !== 0 && (Math.sign(target) !== Math.sign(k.yawRate) || Math.abs(target) > Math.abs(k.yawRate));
-  const tau = rising ? h.yawRiseTime : surface.ice ? h.iceYawFallTime : h.yawFallTime;
+  const tau = rising ? h.yawRiseTime / sensitivity : surface.ice ? h.iceYawFallTime : h.yawFallTime;
   k.yawRate += (target - k.yawRate) * approach(dt, tau);
   if (target === 0 && Math.abs(k.yawRate) < YAW_EPS) k.yawRate = 0;
   k.angle += k.yawRate * dt;

@@ -8,9 +8,8 @@ export const openApiSpec = {
 ### Autenticazione per le operazioni di scrittura (Admin)
 I metodi di sola lettura (\`GET\`) sono pubblici.
 I metodi di creazione, modifica ed eliminazione (\`POST\`, \`PUT\`, \`DELETE\`) richiedono privilegi di **Amministratore**.
-Puoi autenticarti in due modi:
-1. **Cookie di Sessione Better Auth**: Effettua prima il login tramite \`POST /api/auth/sign-in/email\`.
-2. **Header Segreto**: Invia l'header \`x-admin-secret\` con il valore configurato nel backend.`,
+Effettua il login tramite \`POST /api/auth/sign-in/email\`: il cookie di sessione Better Auth autentica le richieste.
+Non esiste registrazione pubblica: gli account admin si creano direttamente nel DB.`,
   },
   servers: [
     {
@@ -71,7 +70,7 @@ Puoi autenticarti in due modi:
         tags: ["Cars"],
         summary: "Crea una nuova auto (Admin)",
         description: "Aggiunge una nuova auto al catalogo. Richiede privilegi di amministratore.",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         requestBody: {
           required: true,
           content: {
@@ -150,7 +149,7 @@ Puoi autenticarti in due modi:
         tags: ["Cars"],
         summary: "Aggiorna un'auto (Admin)",
         description: "Modifica i campi di un'auto per ID. Richiede privilegi di amministratore.",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -194,7 +193,7 @@ Puoi autenticarti in due modi:
         tags: ["Cars"],
         summary: "Elimina un'auto (Admin)",
         description: "Elimina un'auto dal catalogo tramite ID. Richiede privilegi di amministratore.",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -260,7 +259,7 @@ Puoi autenticarti in due modi:
       post: {
         tags: ["Characters"],
         summary: "Crea un nuovo personaggio (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         requestBody: {
           required: true,
           content: {
@@ -332,7 +331,7 @@ Puoi autenticarti in due modi:
       put: {
         tags: ["Characters"],
         summary: "Aggiorna un personaggio (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -374,7 +373,7 @@ Puoi autenticarti in due modi:
       delete: {
         tags: ["Characters"],
         summary: "Elimina un personaggio (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -431,7 +430,7 @@ Puoi autenticarti in due modi:
       post: {
         tags: ["Maps"],
         summary: "Crea una nuova mappa (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         requestBody: {
           required: true,
           content: {
@@ -498,7 +497,7 @@ Puoi autenticarti in due modi:
       put: {
         tags: ["Maps"],
         summary: "Aggiorna una mappa (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -540,7 +539,7 @@ Puoi autenticarti in due modi:
       delete: {
         tags: ["Maps"],
         summary: "Elimina una mappa (Admin)",
-        security: [{ BetterAuthCookie: [] }, { AdminSecretHeader: [] }],
+        security: [{ BetterAuthCookie: [] }],
         parameters: [
           {
             name: "id",
@@ -612,7 +611,9 @@ Puoi autenticarti in due modi:
     "/api/auth/sign-up/email": {
       post: {
         tags: ["Auth (Better Auth)"],
-        summary: "Registrazione Admin con Email e Password",
+        summary: "Registrazione Admin con Email e Password (disattivata)",
+        description: "Disattivata (`disableSignUp`): risponde sempre con errore. Gli admin si creano direttamente nel DB.",
+        deprecated: true,
         requestBody: {
           required: true,
           content: {
@@ -630,8 +631,7 @@ Puoi autenticarti in due modi:
           },
         },
         responses: {
-          200: { description: "Account registrato con successo" },
-          400: { description: "Dati non validi o email già esistente" },
+          400: { description: "Registrazione disattivata" },
         },
       },
     },
@@ -682,12 +682,6 @@ Puoi autenticarti in due modi:
         in: "cookie",
         name: "better-auth.session_token",
         description: "Cookie di sessione automatico generato dopo il login Better Auth.",
-      },
-      AdminSecretHeader: {
-        type: "apiKey",
-        in: "header",
-        name: "x-admin-secret",
-        description: "Header segreto per test diretti o script backend.",
       },
     },
     responses: {

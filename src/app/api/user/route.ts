@@ -9,53 +9,24 @@ import type { TelegramUserProfileResponse } from "@/schemas/telegramUsers";
  * GET /api/user - Recupera il profilo completo del giocatore, gli oggetti sbloccati (userItems),
  * i progressi di sblocco (unlockProgress) e i suoi referral.
  *
- * Supporta:
- * 1) Header `Authorization: tma <initData>` (Telegram Mini App)
- * 2) Query param `?userId=<id>` oppure `?telegramId=<telegramId>`
+ * Solo con header `Authorization: tma <initData>` (Telegram Mini App): il profilo è quello di chi chiama.
  */
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userIdParam = searchParams.get("userId");
-    const telegramIdParam = searchParams.get("telegramId");
-
-    let targetUserId: number | null = userIdParam ? Number(userIdParam) : null;
-    let targetTelegramId: number | null = telegramIdParam ? Number(telegramIdParam) : null;
-
-    // Se non sono passati query param, prova a validare l'header Authorization: tma <initData>
-    if (!targetUserId && !targetTelegramId) {
-      const authHeader = request.headers.get("authorization") ?? "";
-      const initData = authHeader.startsWith("tma ")
-        ? authHeader.slice(4).trim()
-        : authHeader.trim();
-
-      if (initData) {
-        const { isValid, user: tgUser } = validateTelegramInitData(initData);
-        if (!isValid || !tgUser) {
-          return NextResponse.json(
-            { message: "Telegram initData non valido" },
-            { status: 401 }
-          );
-        }
-        targetTelegramId = tgUser.id;
-      }
-    }
-
-    if (!targetUserId && !targetTelegramId) {
+    const authHeader = request.headers.get("authorization") ?? "";
+    const initData = authHeader.startsWith("tma ") ? authHeader.slice(4).trim() : "";
+    const { isValid, user: tgUser } = validateTelegramInitData(initData);
+    if (!isValid || !tgUser) {
       return NextResponse.json(
-        { message: "Specifica userId, telegramId oppure invia l'header Authorization tma" },
-        { status: 400 }
+        { message: "Telegram initData non valido" },
+        { status: 401 }
       );
     }
 
     const [user] = await db
       .select()
       .from(telegramUsers)
-      .where(
-        targetUserId
-          ? eq(telegramUsers.id, targetUserId)
-          : eq(telegramUsers.telegramId, targetTelegramId!)
-      )
+      .where(eq(telegramUsers.telegramId, tgUser.id))
       .limit(1);
 
     if (!user) {

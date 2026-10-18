@@ -1,6 +1,6 @@
 import { handle } from "@/server/http";
 import { requirePlayer } from "@/server/game/player";
-import { leaderboard } from "@/server/game/service";
+import { leaderboard } from "@/server/game/leaderboard";
 
 /** GET /api/game/leaderboard?scope=global|weekly */
 export const GET = handle(async (request: Request) => {

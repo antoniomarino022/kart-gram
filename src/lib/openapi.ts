@@ -144,24 +144,6 @@ export const openApiSpec = {
         },
       },
     },
-    "/api/game/ads/watch": {
-      post: {
-        tags: ["Game"],
-        summary: "Registra visione pubblicità (ADS)",
-        description: "Assegna monete bonus o avanza il progresso di sblocco di un oggetto.",
-        responses: {
-          200: { description: "Annuncio registrato e ricompensa erogata" },
-        },
-      },
-      get: {
-        tags: ["Game"],
-        summary: "Statistiche milestone utente",
-        description: "Numero totale di annunci visti e referral qualificati.",
-        responses: {
-          200: { description: "Statistiche recuperate" },
-        },
-      },
-    },
     "/api/game/leaderboard": {
       get: {
         tags: ["Game"],

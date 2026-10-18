@@ -1,32 +1,73 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { items } from "@/db/schema";
+import { items, playerItems } from "@/db/schema";
 import type { CatalogItem } from "@/backend/types";
-
-export type ItemRow = typeof items.$inferSelect;
+import { bad } from "@/server/http";
+import type { DbClient, ItemRow } from "@/types/game";
 
 /** Riga del DB → oggetto del catalogo nel formato del client (i null diventano campi assenti). */
-export function toCatalogItem(r: ItemRow): CatalogItem {
-  const item: CatalogItem = { id: r.id, kind: r.kind as CatalogItem["kind"], name: r.name };
-  if (r.priceCoins !== null) item.priceCoins = r.priceCoins;
-  if (r.priceStars !== null) item.priceStars = r.priceStars;
-  if (r.model) item.model = r.model;
-  if (r.color) item.color = r.color;
-  if (r.finish) item.finish = r.finish as CatalogItem["finish"];
-  if (r.coins !== null) item.coins = r.coins;
-  if (r.revives !== null) item.revives = r.revives;
-  if (r.grants?.length) item.grants = r.grants;
+export function toCatalogItem(row: ItemRow): CatalogItem {
+  const item: CatalogItem = {
+    id: row.id,
+    kind: row.kind as CatalogItem["kind"],
+    name: row.name,
+  };
+
+  if (row.priceCoins !== null) item.priceCoins = row.priceCoins;
+  if (row.priceStars !== null) item.priceStars = row.priceStars;
+  if (row.model) item.model = row.model;
+  if (row.color) item.color = row.color;
+  if (row.finish) item.finish = row.finish as CatalogItem["finish"];
+  if (row.coins !== null) item.coins = row.coins;
+  if (row.revives !== null) item.revives = row.revives;
+  if (row.grants?.length) item.grants = row.grants;
+
   return item;
 }
 
 /** Oggetti posseduti da tutti: gratis in monete e non venduti in Stelle. */
-export const isFree = (r: Pick<ItemRow, "priceCoins" | "priceStars">) => r.priceCoins === 0 && r.priceStars === null;
+export function isFree(row: Pick<ItemRow, "priceCoins" | "priceStars">): boolean {
+  return row.priceCoins === 0 && row.priceStars === null;
+}
 
 export async function loadItems(opts: { activeOnly: boolean }): Promise<ItemRow[]> {
-  const q = db.select().from(items);
-  return (opts.activeOnly ? q.where(eq(items.isActive, true)) : q).orderBy(asc(items.sortOrder), asc(items.id));
+  const query = db.select().from(items);
+  const filtered = opts.activeOnly ? query.where(eq(items.isActive, true)) : query;
+
+  return filtered.orderBy(asc(items.sortOrder), asc(items.id));
 }
 
 export async function loadCatalog(): Promise<CatalogItem[]> {
-  return (await loadItems({ activeOnly: true })).map(toCatalogItem);
+  const activeItems = await loadItems({ activeOnly: true });
+  return activeItems.map(toCatalogItem);
+}
+
+/** Oggetto attivo del catalogo, altrimenti 400. */
+export async function activeItem(client: DbClient, itemId: string): Promise<ItemRow> {
+  const [item] = await client
+    .select()
+    .from(items)
+    .where(and(eq(items.id, itemId), eq(items.isActive, true)))
+    .limit(1);
+
+  if (!item) {
+    throw bad("Oggetto sconosciuto");
+  }
+
+  return item;
+}
+
+/** Il giocatore possiede l'oggetto (gli oggetti gratuiti li possiedono tutti). */
+export async function owns(client: DbClient, userId: number, item: ItemRow): Promise<boolean> {
+  if (isFree(item)) {
+    return true;
+  }
+
+  const [row] = await client
+    .select()
+    .from(playerItems)
+    .where(and(eq(playerItems.userId, userId), eq(playerItems.itemId, item.id)))
+    .limit(1);
+
+  return Boolean(row);
 }

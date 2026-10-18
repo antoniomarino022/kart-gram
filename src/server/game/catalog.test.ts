@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { DEFAULT_CATALOG } from "@/backend/catalog";
-import { isFree, toCatalogItem, type ItemRow } from "./catalog";
+import type { ItemRow } from "@/types/game";
+import { isFree, toCatalogItem } from "./catalog";
 
 const row = (i: (typeof DEFAULT_CATALOG)[number], n: number): ItemRow => ({
   id: i.id,

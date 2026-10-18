@@ -1,13 +1,16 @@
 import { bot } from "@/telegram/bot";
 
-export async function POST(req: Request) {
-  // con TELEGRAM_WEBHOOK_SECRET impostato (e passato a setWebhook) si accettano solo gli update firmati da Telegram
+export async function POST(request: Request) {
+  // Con TELEGRAM_WEBHOOK_SECRET impostato (e passato a setWebhook) si accettano solo gli update firmati da Telegram
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret && req.headers.get("x-telegram-bot-api-secret-token") !== secret) {
+  const headerToken = request.headers.get("x-telegram-bot-api-secret-token");
+
+  if (secret && headerToken !== secret) {
     return new Response("Unauthorized", { status: 401 });
   }
+
   try {
-    const update = await req.json();
+    const update = await request.json();
     await bot.handleUpdate(update);
     return new Response("OK", { status: 200 });
   } catch (error) {

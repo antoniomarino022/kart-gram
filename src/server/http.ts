@@ -3,7 +3,10 @@ import { ZodError } from "zod";
 
 /** Errore previsto (input non valido, monete insufficienti…): diventa una risposta con lo stato indicato. */
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -17,11 +20,22 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<unknown>
       const data = await fn(...args);
       return data instanceof Response ? data : NextResponse.json(data);
     } catch (err) {
-      if (err instanceof HttpError) return NextResponse.json({ message: err.message }, { status: err.status });
-      if (err instanceof ZodError) return NextResponse.json({ message: "Dati non validi", errors: err.flatten().fieldErrors }, { status: 400 });
+      if (err instanceof HttpError) {
+        return NextResponse.json({ message: err.message }, { status: err.status });
+      }
+
+      if (err instanceof ZodError) {
+        return NextResponse.json(
+          { message: "Dati non validi", errors: err.flatten().fieldErrors },
+          { status: 400 },
+        );
+      }
+
       console.error("[api]", err);
-      return NextResponse.json({ message: "Errore interno del server" }, { status: 500 });
+      return NextResponse.json(
+        { message: "Errore interno del server" },
+        { status: 500 },
+      );
     }
   };
 }
-

@@ -7,11 +7,7 @@ import { grantItem, owns } from "@/lib/game-helpers";
 import { ReferralStatus } from "@/types/enums";
 import type { PaymentCheck } from "@/types/game";
 
-const token = process.env.BOT_API_KEY;
-
-if (!token) {
-  throw new Error("BOT_API_KEY is not defined in environment variables.");
-}
+const token = process.env.BOT_API_KEY || "placeholder_token";
 
 export const bot = new Telegraf(token);
 

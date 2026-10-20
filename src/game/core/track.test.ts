@@ -59,33 +59,18 @@ describe("track", () => {
     for (let i = 1; i < obstacles.length; i++) expect(obstacles[i].s - obstacles[i - 1].s).toBeGreaterThanOrEqual(6);
   });
 
-  it("spawns boost pads on straights, half or full width, never near obstacles", () => {
+  it("spawns no boost pads when boostChance is 0", () => {
     const t = createTrack(15); extendTrack(t, 15000);
     const pads = t.items.filter((i) => i.kind === "boost");
-    expect(pads.length).toBeGreaterThan(10);
-    expect(pads.some((p) => p.lateral === 0)).toBe(true);
-    expect(pads.some((p) => p.lateral > 0)).toBe(true);
-    expect(pads.some((p) => p.lateral < 0)).toBe(true);
-    const { length, clearance } = CONFIG.boost;
-    for (const p of pads) {
-      expect(p.length).toBe(length);
-      expect(p.s).toBeGreaterThanOrEqual(CONFIG.spawn.safeStart);
-      const w = sampleAt(t, p.s).width;
-      expect(Math.abs(p.lateral)).toBeCloseTo(p.lateral === 0 ? 0 : w / 4, 5);
-      // tutta la pedana su un rettilineo
-      for (let s = p.s; s <= p.s + length; s += 1) expect(sampleAt(t, s).curvature).toBe(0);
-    }
-    const obstacles = t.items.filter((i) => !["coin", "powerup", "boost"].includes(i.kind));
-    for (const p of pads) {
-      for (const o of obstacles) expect(o.s < p.s - clearance || o.s > p.s + length + clearance, `pad ${p.s} vs ${o.kind} ${o.s}`).toBe(true);
-    }
+    expect(pads.length).toBe(0);
   });
 
-  it("hearts spawn, rarer than the other power-ups", () => {
+  it("hearts spawn, rarer than other power-ups and turbo is disabled", () => {
     const t = createTrack(16); extendTrack(t, 40000);
     const count = (k: string) => t.items.filter((i) => i.kind === "powerup" && i.powerup === k).length;
     expect(count("heart")).toBeGreaterThan(0);
-    expect(count("heart")).toBeLessThan(count("turbo"));
+    expect(count("turbo")).toBe(0);
+    expect(count("heart")).toBeLessThan(count("magnet"));
   });
 
   it("holes and barriers always leave at least 2.5m of free road", () => {

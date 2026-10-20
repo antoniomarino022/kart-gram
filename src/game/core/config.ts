@@ -13,12 +13,12 @@ export const CONFIG = {
    */
   speed: { base: 22, perBiome: 3, max: 40, comboBonus: 0.12, accel: 8, decel: 24 },
   /** Raggio di sterzata in drift: maxTurnRate = speed / turnRadius. Deve essere < curve.absMinRadius. */
-  turnRadius: 8,
+  turnRadius: 9.5,
   /**
    * Sensazione di guida (src/game/core/kartPhysics.ts): tempi di risposta della velocità angolare (s) e aderenza
    * per metro percorso con cui la direzione di moto insegue il muso (ghiaccio e olio scivolano di più).
    */
-  handling: { yawRiseTime: 0.09, yawFallTime: 0.15, iceYawFallTime: 0.4, gripPerMeter: 0.35, iceGrip: 0.35, oilGrip: 0.45 },
+  handling: { yawRiseTime: 0.11, yawFallTime: 0.17, iceYawFallTime: 0.4, gripPerMeter: 0.35, iceGrip: 0.35, oilGrip: 0.45 },
   iceGrip: 0.7,
   /**
    * Sensibilità dello sterzo per ruote (1 = base): moltiplica la velocità angolare massima e rallenta la risposta
@@ -30,7 +30,7 @@ export const CONFIG = {
   fallGrace: 0.2,
   road: { width: 7, narrowWidth: 4.5, wideBonus: 3, startStraight: 60, narrowChance: 0.2, straightChance: 0.4 },
   curve: { minRadius: 16, absMinRadius: 13, maxRadius: 24, minAngle: Math.PI / 4, maxAngle: Math.PI / 2, headingLimit: 1.4 },
-  spawn: { safeStart: 60, baseSpacing: 30, spacingPerBiome: 3, minSpacing: 12, coinChance: 0.6, powerupChance: 0.15, boostChance: 0.3 },
+  spawn: { safeStart: 60, baseSpacing: 30, spacingPerBiome: 3, minSpacing: 12, coinChance: 0.6, powerupChance: 0.15, boostChance: 0 },
   fallDuration: 1,
   /** Vite: ogni urto con un ostacolo ne toglie una, a 0 il kart si schianta (crashDuration s) e la partita finisce. */
   lives: 3,

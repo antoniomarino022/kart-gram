@@ -4,9 +4,9 @@ import { sampleAt, type Track } from "./track";
 
 export type ObstacleKind = "cone" | "oil" | "ice" | "barrier" | "hole" | "rival";
 export type PowerupKind = "turbo" | "shield" | "magnet" | "wide" | "slowmo" | "x2" | "heart";
-export const POWERUP_KINDS: readonly PowerupKind[] = ["turbo", "shield", "magnet", "wide", "slowmo", "x2", "heart"];
-/** Peso nello spawn: il cuore (+1 vita) è raro, metà degli altri. */
-const POWERUP_WEIGHT: Record<PowerupKind, number> = { turbo: 2, shield: 2, magnet: 2, wide: 2, slowmo: 2, x2: 2, heart: 1 };
+export const POWERUP_KINDS: readonly PowerupKind[] = ["shield", "magnet", "wide", "slowmo", "x2", "heart"];
+/** Peso nello spawn: il cuore (+1 vita) è raro, metà degli altri. Turbo escluso dallo spawn. */
+const POWERUP_WEIGHT: Record<PowerupKind, number> = { turbo: 0, shield: 2, magnet: 2, wide: 2, slowmo: 2, x2: 2, heart: 1 };
 const POWERUP_TOTAL = POWERUP_KINDS.reduce((a, k) => a + POWERUP_WEIGHT[k], 0);
 
 /** Un solo numero dall'RNG, come `pick`: il resto dello stream non cambia. */

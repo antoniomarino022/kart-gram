@@ -131,18 +131,20 @@ describe("sim", () => {
     expect(ice.slip).toBeGreaterThan(dry.slip);
   });
 
-  it("a boost pad speeds the kart up and emits boost once", () => {
+  it("a jump pad launches the kart and emits jump and boost events", () => {
     const st = createGame(1, undefined, { spawnItems: false });
-    const base = st.kart.speed;
     st.track.items.push(pad({ id: 991, kind: "boost", s: 5, lateral: 0, radius: 3.5, length: 12 }));
-    let boosts = 0, top = 0;
-    for (let i = 0; i < 90; i++) { step(st, 0); boosts += st.events.filter((e) => e.type === "boost").length; top = Math.max(top, st.kart.speed); }
-    expect(boosts).toBe(1);
-    expect(top).toBeGreaterThan(base * 1.2);
-    expect(top).toBeLessThanOrEqual(base * CONFIG.boost.speedFactor + 1e-9);
+    let jumps = 0, maxHeight = 0;
+    for (let i = 0; i < 90; i++) {
+      step(st, 0);
+      jumps += st.events.filter((e) => e.type === "jump").length;
+      maxHeight = Math.max(maxHeight, st.kart.jumpHeight);
+    }
+    expect(jumps).toBe(1);
+    expect(maxHeight).toBeGreaterThan(1.5);
     for (let i = 0; i < 60 * 3; i++) step(st, 0);
-    expect(st.boostTimer).toBe(0);
-    expect(st.kart.speed).toBe(base);
+    expect(st.jumpTimer).toBe(0);
+    expect(st.kart.jumpHeight).toBe(0);
   });
 
   it("combo makes the kart faster, approaching the target smoothly", () => {

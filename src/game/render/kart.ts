@@ -145,19 +145,27 @@ export class KartRig {
   }
 
   /** Stato visivo per frame. */
-  update(opts: { speed: number; dt: number; time: number; blink: boolean; turbo: boolean; shield: boolean; falling: boolean; spin: boolean }) {
+  update(opts: { speed: number; dt: number; time: number; blink: boolean; turbo: boolean; ghost?: boolean; shield: boolean; falling: boolean; spin: boolean }) {
     if (opts.spin) for (const w of this.wheels) w.rotation.x -= (opts.speed * opts.dt) / WHEEL_R;
     this.pivot.visible = !opts.blink;
     this.shield.visible = opts.shield;
     if (opts.shield) this.shield.scale.setScalar(1 + Math.sin(opts.time * 4) * 0.04);
     this.blob.visible = !opts.falling;
 
-    if (opts.turbo) {
+    if (opts.ghost) {
+      for (const p of this.paints) {
+        p.mat.transparent = true;
+        p.mat.opacity = 0.45 + 0.15 * Math.sin(opts.time * 12);
+        p.mat.emissive.set("#b388ff");
+        p.mat.emissiveIntensity = 0.6;
+      }
+      this.glowing = true;
+    } else if (opts.turbo) {
       const k = 0.45 + 0.3 * Math.sin(opts.time * 20);
-      for (const p of this.paints) { p.mat.emissive.copy(TURBO_GLOW); p.mat.emissiveIntensity = k; }
+      for (const p of this.paints) { p.mat.transparent = false; p.mat.opacity = 1; p.mat.emissive.copy(TURBO_GLOW); p.mat.emissiveIntensity = k; }
       this.glowing = true;
     } else if (this.glowing) {
-      for (const p of this.paints) { p.mat.emissive.copy(p.emissive); p.mat.emissiveIntensity = p.intensity; }
+      for (const p of this.paints) { p.mat.transparent = false; p.mat.opacity = 1; p.mat.emissive.copy(p.emissive); p.mat.emissiveIntensity = p.intensity; }
       this.glowing = false;
     }
   }

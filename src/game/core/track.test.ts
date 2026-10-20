@@ -59,17 +59,19 @@ describe("track", () => {
     for (let i = 1; i < obstacles.length; i++) expect(obstacles[i].s - obstacles[i - 1].s).toBeGreaterThanOrEqual(6);
   });
 
-  it("spawns no boost pads when boostChance is 0", () => {
+  it("spawns jump pads on straights", () => {
     const t = createTrack(15); extendTrack(t, 15000);
     const pads = t.items.filter((i) => i.kind === "boost");
-    expect(pads.length).toBe(0);
+    expect(pads.length).toBeGreaterThan(0);
   });
 
-  it("hearts spawn, rarer than other power-ups and turbo is disabled", () => {
+  it("hearts and new powerups spawn correctly and turbo is disabled", () => {
     const t = createTrack(16); extendTrack(t, 40000);
     const count = (k: string) => t.items.filter((i) => i.kind === "powerup" && i.powerup === k).length;
     expect(count("heart")).toBeGreaterThan(0);
     expect(count("turbo")).toBe(0);
+    expect(count("ghost")).toBeGreaterThan(0);
+    expect(count("shockwave")).toBeGreaterThan(0);
     expect(count("heart")).toBeLessThan(count("magnet"));
   });
 

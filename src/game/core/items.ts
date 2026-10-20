@@ -2,11 +2,21 @@ import { CONFIG } from "./config";
 import { range, type Rng } from "./rng";
 import { sampleAt, type Track } from "./track";
 
-export type ObstacleKind = "cone" | "oil" | "ice" | "barrier" | "hole" | "rival";
-export type PowerupKind = "turbo" | "shield" | "magnet" | "wide" | "slowmo" | "x2" | "heart";
-export const POWERUP_KINDS: readonly PowerupKind[] = ["shield", "magnet", "wide", "slowmo", "x2", "heart"];
-/** Peso nello spawn: il cuore (+1 vita) è raro, metà degli altri. Turbo escluso dallo spawn. */
-const POWERUP_WEIGHT: Record<PowerupKind, number> = { turbo: 0, shield: 2, magnet: 2, wide: 2, slowmo: 2, x2: 2, heart: 1 };
+export type ObstacleKind = "cone" | "oil" | "ice" | "barrier" | "hole" | "rival" | "barrel";
+export type PowerupKind = "turbo" | "shield" | "magnet" | "wide" | "slowmo" | "x2" | "heart" | "ghost" | "shockwave";
+export const POWERUP_KINDS: readonly PowerupKind[] = ["shield", "magnet", "wide", "slowmo", "x2", "heart", "ghost", "shockwave"];
+/** Peso nello spawn: il cuore (+1 vita) è raro, shockwave è impattante, turbo escluso. */
+const POWERUP_WEIGHT: Record<PowerupKind, number> = {
+  turbo: 0,
+  shield: 2,
+  magnet: 2,
+  wide: 2,
+  slowmo: 2,
+  x2: 2,
+  heart: 1,
+  ghost: 2,
+  shockwave: 2,
+};
 const POWERUP_TOTAL = POWERUP_KINDS.reduce((a, k) => a + POWERUP_WEIGHT[k], 0);
 
 /** Un solo numero dall'RNG, come `pick`: il resto dello stream non cambia. */
@@ -42,7 +52,7 @@ export interface Item {
 
 const isObstacle = (it: Item) => it.kind !== "coin" && it.kind !== "powerup" && it.kind !== "boost";
 
-export const isSolid = (it: Item) => it.kind === "cone" || it.kind === "barrier" || it.kind === "rival";
+export const isSolid = (it: Item) => it.kind === "cone" || it.kind === "barrier" || it.kind === "rival" || it.kind === "barrel";
 
 function add(track: Track, partial: Partial<Item> & Pick<Item, "kind" | "s" | "lateral" | "radius">) {
   track.items.push({ id: track.nextItemId++, length: 0, speed: 0, consumed: false, passed: false, minDist: Infinity, ...partial });
@@ -51,7 +61,8 @@ function add(track: Track, partial: Partial<Item> & Pick<Item, "kind" | "s" | "l
 function pickObstacle(rng: Rng, difficulty: number, isCurve: boolean, width: number): ObstacleKind {
   const full = width >= CONFIG.road.width;
   const pool: [ObstacleKind, number][] = [
-    ["cone", 30],
+    ["cone", 25],
+    ["barrel", 15],
     ["oil", 15],
     ["rival", isCurve ? 0 : 15],
     ["barrier", !isCurve && full ? 15 : 0],
@@ -78,6 +89,7 @@ export function spawnItems(track: Track, startS: number, endS: number, difficult
     const kind = pickObstacle(rng, difficulty, isCurve, w);
     switch (kind) {
       case "cone": add(track, { kind, s, lateral: range(rng, -w / 2 + 0.6, w / 2 - 0.6), radius: 0.4 }); break;
+      case "barrel": add(track, { kind, s, lateral: range(rng, -w / 2 + 0.8, w / 2 - 0.8), radius: 0.55 }); break;
       case "oil": add(track, { kind, s, lateral: range(rng, -w / 2 + 1.2, w / 2 - 1.2), radius: 1.2 }); break;
       case "ice": add(track, { kind, s, lateral: 0, radius: 0, length: 12 }); break;
       case "barrier": add(track, { kind, s, lateral: side(rng) * (w / 2 - 1.5), radius: 1.5 }); break;

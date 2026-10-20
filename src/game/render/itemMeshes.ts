@@ -15,7 +15,7 @@ const HALF_PI = Math.PI / 2;
 interface Entry { obj: THREE.Object3D; seen: number; pool?: string; ownGeometry?: THREE.BufferGeometry }
 
 const MODEL_OF: Partial<Record<Item["kind"], string>> = {
-  cone: "obstacle_cone", barrier: "obstacle_barrier", rival: "rival_kart", coin: "coin",
+  cone: "obstacle_cone", barrier: "obstacle_barrier", rival: "rival_kart", coin: "coin", barrel: "obstacle_barrel",
 };
 
 function decalMaterial<T extends THREE.Material>(m: T): T {

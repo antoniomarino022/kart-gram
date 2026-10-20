@@ -41,7 +41,27 @@ function activatePowerup(st: GameState, kind: PowerupKind) {
   }
   if (kind === "shield") st.powerups.shield = 1;
   else if (kind === "wide") st.powerups.wide = CONFIG.powerupBase.wide;
-  else st.powerups[kind] = CONFIG.powerupBase[kind] + st.upgrades[kind] * CONFIG.upgradePerLevel[kind];
+  else if (kind === "shockwave") {
+    triggerShockwave(st);
+  } else {
+    st.powerups[kind] = CONFIG.powerupBase[kind] + (st.upgrades[kind] ?? 0) * (CONFIG.upgradePerLevel[kind] ?? 0);
+  }
+}
+
+/** L'onda d'urto distrugge tutti gli ostacoli nel raggio shockwaveRadius e assegna punti */
+function triggerShockwave(st: GameState) {
+  const k = st.kart;
+  st.events.push({ type: "shockwave" });
+  for (const it of st.track.items) {
+    if (it.consumed || it.kind === "coin" || it.kind === "powerup") continue;
+    const ds = Math.abs(it.s - k.s);
+    if (ds <= CONFIG.shockwaveRadius) {
+      it.consumed = true;
+      st.comboPoints++;
+      st.score += 50 * multiplier(st);
+      st.events.push({ type: "smash" });
+    }
+  }
 }
 
 /** Il kart è sulla pedana: dentro il tratto e (se la pedana è mezza strada) dalla parte giusta. */
@@ -56,15 +76,23 @@ function onBoostPad(st: GameState, it: Item) {
 export function surface(st: GameState) {
   const k = st.kart;
   let ice = false, oil = false;
+  // In salto non si tocca terra: niente ghiaccio né olio
+  const inAir = k.jumpHeight > 0.3;
   for (const it of st.track.items) {
     if (it.consumed) continue;
     if (it.kind === "boost") {
       if (onBoostPad(st, it)) {
-        st.boostTimer = CONFIG.boost.duration;
-        if (!it.entered) { it.entered = true; st.events.push({ type: "boost" }); }
+        // La pedana è stata convertita in Jump Pad: lancia il kart in aria e dà una spinta
+        st.jumpTimer = CONFIG.jumpPad.duration;
+        if (!it.entered) {
+          it.entered = true;
+          st.score += CONFIG.jumpPad.forwardBonus * multiplier(st);
+          st.comboPoints++;
+          st.events.push({ type: "jump" }, { type: "boost" });
+        }
       }
-    } else if (it.kind === "ice" && k.s >= it.s && k.s <= it.s + it.length) ice = true;
-    else if (it.kind === "oil" && Math.abs(it.s - k.s) < 3) {
+    } else if (!inAir && it.kind === "ice" && k.s >= it.s && k.s <= it.s + it.length) ice = true;
+    else if (!inAir && it.kind === "oil" && Math.abs(it.s - k.s) < 3) {
       const p = itemPosition(st.track, it);
       if (Math.hypot(p.x - k.x, p.y - k.y) < it.radius) oil = true;
     }
@@ -74,6 +102,8 @@ export function surface(st: GameState) {
 
 export function handleItems(st: GameState, dt: number) {
   const k = st.kart;
+  const isGhost = st.powerups.ghost > 0;
+  const inAir = k.jumpHeight > 0.3;
   const protectedNow = st.powerups.turbo > 0 || st.invulnTimer > 0;
   for (const it of st.track.items) {
     if (it.kind === "rival" && !it.consumed && it.s - k.s < 120) it.s += it.speed * dt;
@@ -99,10 +129,20 @@ export function handleItems(st: GameState, dt: number) {
     } else if (it.kind === "powerup") {
       if (dist < it.radius + CONFIG.pickupRadius) { it.consumed = true; activatePowerup(st, it.powerup!); }
     } else if (it.kind === "hole") {
-      if (dist < it.radius && !protectedNow) { startFall(st); if (st.phase !== "running") return; }
+      // In ghost o in salto non si cade nella buca
+      if (dist < it.radius && !protectedNow && !isGhost && !inAir) {
+        startFall(st);
+        if (st.phase !== "running") return;
+      }
     } else {
       it.minDist = Math.min(it.minDist, dist);
+      // In ghost o in salto alto sopra ostacoli bassi (coni, barili) non si impatta
+      const canJumpOver = inAir && (it.kind === "cone" || it.kind === "barrel");
       if (dist < it.radius + CONFIG.kartHalfWidth) {
+        if (isGhost || canJumpOver) {
+          // Attraversa senza subire danni né rallentamenti!
+          continue;
+        }
         it.consumed = true;
         if (protectedNow) st.events.push({ type: "smash" });
         else if (st.powerups.shield > 0) {

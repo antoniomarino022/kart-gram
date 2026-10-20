@@ -148,7 +148,7 @@ export class GameRenderer {
     const e0 = sampleAt(state.track, k.s - 1).elevation, e1 = sampleAt(state.track, k.s + 1).elevation;
     const pitch = falling ? Math.atan2(e1 - e0, 2) - Math.min(0.9, k.fallDepth * 0.12) : Math.atan2(e1 - e0, 2);
     const root = this.kart.root;
-    root.position.set(x, elev - k.fallDepth, -y);
+    root.position.set(x, elev + (k.jumpHeight ?? 0) - k.fallDepth, -y);
     root.rotation.set(pitch, yaw, 0);
 
     // rollio verso l'esterno e leggero schiacciamento proporzionali alla velocità angolare; ruote anteriori che sterzano
@@ -162,11 +162,12 @@ export class GameRenderer {
     if (Math.abs(slip) > 0.01) this.outerSide = slip > 0 ? 1 : -1;
 
     const turbo = state.powerups.turbo > 0;
+    const ghost = state.powerups.ghost > 0;
     const boost = running && state.boostTimer > 0;
     this.kart.update({
       speed: k.speed, dt, time: this.time,
       blink: state.invulnTimer > 0 && Math.floor(this.time * 12) % 2 === 0,
-      turbo, shield: state.powerups.shield > 0, falling: !running && k.fallDepth > 0,
+      turbo, ghost, shield: state.powerups.shield > 0, falling: !running && k.fallDepth > 0,
       spin: state.phase !== "over",
     });
     root.updateMatrixWorld(true);

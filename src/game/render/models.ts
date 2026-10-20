@@ -7,6 +7,7 @@ export const ALL_MODEL_NAMES: string[] = [
   "wheel_basic", "wheel_sport", "wheel_offroad", "wheel_retro",
   "rival_kart", "obstacle_cone", "obstacle_barrier", "coin",
   "powerup_turbo", "powerup_shield", "powerup_magnet", "powerup_wide", "powerup_slowmo", "powerup_x2", "powerup_heart",
+  "powerup_ghost", "powerup_shockwave",
   "deco_city_1", "deco_city_2", "deco_city_3",
   "deco_desert_1", "deco_desert_2", "deco_desert_3",
   "deco_ice_1", "deco_ice_2", "deco_ice_3",
@@ -25,6 +26,7 @@ const baseName = (name: string) => name.replace(/\.glb$/i, "");
 type FallbackSpec = [number, number, number, number, string];
 export const POWERUP_COLORS: Record<string, string> = {
   turbo: "#ff6d00", shield: "#29b6f6", magnet: "#e53935", wide: "#43a047", slowmo: "#8e24aa", x2: "#fdd835", heart: "#e53950",
+  ghost: "#e0e7ff", shockwave: "#00e5ff",
 };
 
 function fallbackSpec(name: string): FallbackSpec {
@@ -32,6 +34,7 @@ function fallbackSpec(name: string): FallbackSpec {
   if (name.startsWith("wheel_")) return [0.18, 0.44, 0.44, 0, "#1c1c22"];
   if (name === "rival_kart") return [1, 0.6, 1.6, 0.3, "#6d7278"];
   if (name === "obstacle_cone") return [0.6, 0.7, 0.6, 0.35, "#ff6d00"];
+  if (name === "obstacle_barrel") return [0.7, 1.0, 0.7, 0.5, "#d97706"];
   if (name === "obstacle_barrier") return [3, 0.9, 0.4, 0.45, "#e53935"];
   if (name === "coin") return [0.7, 0.7, 0.08, 0, "#ffc107"];
   if (name.startsWith("powerup_")) return [0.7, 0.7, 0.7, 0, POWERUP_COLORS[name.slice(8)] ?? "#ff00ff"];

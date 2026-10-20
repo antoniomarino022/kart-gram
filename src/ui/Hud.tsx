@@ -12,7 +12,7 @@ import { fmt } from "./loadout";
 import { PauseOverlay } from "./PauseOverlay";
 
 const POWERUPS: { kind: PowerupKind; label: string; icon: string; color: string }[] = [
-  { kind: "turbo", label: "Turbo", icon: "🔥", color: "#ff6d00" },
+  { kind: "ghost", label: "Ghost", icon: "👻", color: "#b388ff" },
   { kind: "shield", label: "Scudo", icon: "🛡️", color: "#29b6f6" },
   { kind: "magnet", label: "Magnete", icon: "🧲", color: "#e53935" },
   { kind: "wide", label: "Strada larga", icon: "↔️", color: "#43a047" },
@@ -22,9 +22,11 @@ const POWERUPS: { kind: PowerupKind; label: string; icon: string; color: string 
 
 /** Durata piena di un power-up a tempo, per la barra (lo scudo non scade). */
 function fullDuration(kind: PowerupKind, upgrades: UpgradeLevels): number {
-  if (kind === "shield" || kind === "heart") return 1;
+  if (kind === "shield" || kind === "heart" || kind === "shockwave") return 1;
   if (kind === "wide") return CONFIG.powerupBase.wide;
-  return CONFIG.powerupBase[kind] + upgrades[kind] * CONFIG.upgradePerLevel[kind];
+  const base = CONFIG.powerupBase[kind] ?? 3;
+  const perLvl = CONFIG.upgradePerLevel[kind] ?? 0;
+  return base + (upgrades[kind] ?? 0) * perLvl;
 }
 
 interface Props {

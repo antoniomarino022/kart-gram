@@ -74,10 +74,9 @@ const base = new THREE.Color(), arrow = new THREE.Color(), hsl = { h: 0, s: 0, l
 
 /** Striscia sulla strada che segue la curvatura: tutta la larghezza (lateral 0) o la metà indicata dal segno di lateral. */
 export function boostGeometry(track: Track, it: Item) {
-  // tinta chiara del bioma della pedana; le frecce sono la stessa tinta, più satura e profonda
-  base.set(biomeAt(Math.floor(it.s / CONFIG.biomeLength)).boost);
-  base.getHSL(hsl);
-  arrow.setHSL(hsl.h, Math.min(1, hsl.s + 0.3), Math.max(0, hsl.l - 0.2));
+  // Pedana di salto / Jump Pad: tonalità ambra ed oro brillante con frecce accese
+  base.set("#ff9800");
+  arrow.set("#ffff00");
 
   const pos: number[] = [], uv: number[] = [], half: number[] = [], cb: number[] = [], ca: number[] = [];
   const index: number[] = [];

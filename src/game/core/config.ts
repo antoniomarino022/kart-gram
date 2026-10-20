@@ -30,7 +30,7 @@ export const CONFIG = {
   fallGrace: 0.2,
   road: { width: 7, narrowWidth: 4.5, wideBonus: 3, startStraight: 60, narrowChance: 0.2, straightChance: 0.4 },
   curve: { minRadius: 16, absMinRadius: 13, maxRadius: 24, minAngle: Math.PI / 4, maxAngle: Math.PI / 2, headingLimit: 1.4 },
-  spawn: { safeStart: 60, baseSpacing: 30, spacingPerBiome: 3, minSpacing: 12, coinChance: 0.6, powerupChance: 0.15, boostChance: 0 },
+  spawn: { safeStart: 60, baseSpacing: 26, spacingPerBiome: 3, minSpacing: 10, coinChance: 0.65, powerupChance: 0.2, boostChance: 0.35 },
   fallDuration: 1,
   /** Vite: ogni urto con un ostacolo ne toglie una, a 0 il kart si schianta (crashDuration s) e la partita finisce. */
   lives: 3,
@@ -41,8 +41,10 @@ export const CONFIG = {
   /** Pedane boost: lunghezza (m), quota a tutta larghezza, distanza minima dagli ostacoli (m), durata dell'effetto (s), moltiplicatore di velocità, quanto il kart deve stare dentro la metà (m). */
   boost: { length: 12, fullWidthChance: 0.25, duration: 1.5, speedFactor: 1.35, minInside: 0.2, clearance: 4 },
   slowmoTimeScale: 0.6,
-  powerupBase: { turbo: 3, magnet: 6, wide: 5, slowmo: 3, x2: 6 },
-  upgradePerLevel: { turbo: 0.5, magnet: 1, slowmo: 0.5, x2: 1 },
+  shockwaveRadius: 16,
+  jumpPad: { duration: 0.9, height: 2.2, forwardBonus: 30 },
+  powerupBase: { turbo: 3, magnet: 6, wide: 5, slowmo: 3, x2: 6, ghost: 4.5, shockwave: 1 },
+  upgradePerLevel: { turbo: 0.5, magnet: 1, slowmo: 0.5, x2: 1, ghost: 0.5, shockwave: 0 },
   magnetRadius: 6,
   pickupRadius: 1.0,
   nearMissMargin: 1.0,

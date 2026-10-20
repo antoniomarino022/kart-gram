@@ -16,6 +16,8 @@ export type GameEvent =
   | { type: "powerup"; kind: PowerupKind }
   | { type: "hit" }
   | { type: "smash" }
+  | { type: "shockwave" }
+  | { type: "jump" }
   | { type: "nearMiss" }
   | { type: "driftEnd"; seconds: number; points: number }
   | { type: "fall" }
@@ -39,6 +41,8 @@ export interface Kart {
   s: number; lateral: number; index: number; elevation: number;
   /** Metri di caduta (solo in phase "falling"), per il renderer. */
   fallDepth: number;
+  /** Altezza dal suolo per i salti (m). */
+  jumpHeight: number;
   drifting: boolean;
 }
 
@@ -63,6 +67,7 @@ export interface GameState {
   invulnTimer: number;
   /** Secondi di boost rimasti (pedane). */
   boostTimer: number;
+  jumpTimer: number;
   powerups: Record<PowerupKind, number>;
   upgrades: UpgradeLevels;
   revived: boolean;
@@ -74,7 +79,7 @@ export interface GameState {
   events: GameEvent[];
 }
 
-const TIMED: Exclude<PowerupKind, "shield" | "heart">[] = ["turbo", "magnet", "wide", "slowmo", "x2"];
+const TIMED: Exclude<PowerupKind, "shield" | "heart" | "shockwave">[] = ["turbo", "magnet", "wide", "slowmo", "x2", "ghost"];
 
 export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, opts: { spawnItems?: boolean; wheels?: string } = {}): GameState {
   const track = createTrack(seed, opts);
@@ -82,7 +87,7 @@ export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, 
   return {
     tick: 0,
     track,
-    kart: { x: 0, y: 0, angle: Math.PI / 2, moveAngle: Math.PI / 2, yawRate: 0, speed: CONFIG.speed.base, s: 0, lateral: 0, index: 0, elevation: 0, fallDepth: 0, drifting: false },
+    kart: { x: 0, y: 0, angle: Math.PI / 2, moveAngle: Math.PI / 2, yawRate: 0, speed: CONFIG.speed.base, s: 0, lateral: 0, index: 0, elevation: 0, fallDepth: 0, jumpHeight: 0, drifting: false },
     phase: "running",
     fallTimer: 0,
     endReason: null,
@@ -96,7 +101,8 @@ export function createGame(seed: number, upgrades: UpgradeLevels = NO_UPGRADES, 
     slowTimer: 0,
     invulnTimer: 0,
     boostTimer: 0,
-    powerups: { turbo: 0, shield: 0, magnet: 0, wide: 0, slowmo: 0, x2: 0, heart: 0 },
+    jumpTimer: 0,
+    powerups: { turbo: 0, shield: 0, magnet: 0, wide: 0, slowmo: 0, x2: 0, heart: 0, ghost: 0, shockwave: 0 },
     upgrades: { ...upgrades },
     revived: false,
     biome: 0,
@@ -139,6 +145,14 @@ export function step(st: GameState, steer: Steer): GameState {
   st.slowTimer = Math.max(0, st.slowTimer - DT);
   st.invulnTimer = Math.max(0, st.invulnTimer - DT);
   st.boostTimer = Math.max(0, st.boostTimer - DT);
+  if (st.jumpTimer > 0) {
+    st.jumpTimer = Math.max(0, st.jumpTimer - DT);
+    const progress = 1 - st.jumpTimer / CONFIG.jumpPad.duration;
+    // Parabola perfetta: 4 * h * p * (1 - p)
+    k.jumpHeight = Math.max(0, 4 * CONFIG.jumpPad.height * progress * (1 - progress));
+  } else {
+    k.jumpHeight = 0;
+  }
 
   if (st.phase === "falling") {
     k.x += Math.cos(k.moveAngle) * k.speed * dt;

@@ -204,7 +204,7 @@ describe("sim", () => {
   });
 
   it("powerup pickup activates with upgraded duration", () => {
-    const st = createGame(1, { turbo: 0, magnet: 2, slowmo: 0, x2: 0 }, { spawnItems: false });
+    const st = createGame(1, { turbo: 0, magnet: 2, slowmo: 0, x2: 0, ghost: 0 }, { spawnItems: false });
     st.track.items.push({ id: 997, kind: "powerup", powerup: "magnet", s: 8, lateral: 0, radius: 0.6, length: 0, speed: 0, consumed: false, passed: false, minDist: Infinity });
     for (let i = 0; i < 60 && st.powerups.magnet === 0; i++) step(st, 0);
     expect(st.powerups.magnet).toBeGreaterThan(CONFIG.powerupBase.magnet + 1.5);

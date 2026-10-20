@@ -5,7 +5,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 export const ALL_MODEL_NAMES: string[] = [
   "kart_classic", "kart_bolt", "kart_brick", "kart_rocket",
   "wheel_basic", "wheel_sport", "wheel_offroad", "wheel_retro",
-  "rival_kart", "obstacle_cone", "obstacle_barrier", "coin",
+  "rival_kart", "obstacle_cone", "obstacle_barrier", "obstacle_barrel", "coin",
   "powerup_turbo", "powerup_shield", "powerup_magnet", "powerup_wide", "powerup_slowmo", "powerup_x2", "powerup_heart",
   "powerup_ghost", "powerup_shockwave",
   "deco_city_1", "deco_city_2", "deco_city_3",

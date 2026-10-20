@@ -7,9 +7,9 @@ import { createTrack, extendTrack, project, sampleAt, type Track } from "./track
 /** Sterzata: +1 = sinistra (l'angolo cresce), -1 = destra, 0 = dritto. */
 export type Steer = -1 | 0 | 1;
 
-export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2";
+export type UpgradeId = "turbo" | "magnet" | "slowmo" | "x2" | "ghost";
 export type UpgradeLevels = Record<UpgradeId, number>;
-export const NO_UPGRADES: UpgradeLevels = { turbo: 0, magnet: 0, slowmo: 0, x2: 0 };
+export const NO_UPGRADES: UpgradeLevels = { turbo: 0, magnet: 0, slowmo: 0, x2: 0, ghost: 0 };
 
 export type GameEvent =
   | { type: "coin" }

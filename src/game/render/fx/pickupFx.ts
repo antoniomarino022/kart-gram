@@ -7,6 +7,11 @@ const RING_LIFE = 0.4;
 const RING_FROM = 0.5, RING_TO = 3;
 const COIN_SPARKLES = 14;
 
+const SHOCK_RINGS = 2;
+const SHOCK_LIFE = 0.55;
+const SHOCK_FROM = 1, SHOCK_TO = 16;
+const SHOCK_COLOR = new THREE.Color("#00e5ff");
+const SHOCK_CORE = new THREE.Color("#e0f7fa");
 
 const GOLD = new THREE.Color("#ffd84a");
 const GOLD_END = new THREE.Color("#ff9a1a");
@@ -24,6 +29,9 @@ export class PickupFx {
   private age = new Float32Array(RINGS).fill(RING_LIFE);
   private next = 0;
   private e = newEmit();
+  private shockRings: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>[] = [];
+  private shockAge = new Float32Array(SHOCK_RINGS).fill(SHOCK_LIFE);
+  private shockNext = 0;
 
   constructor(private scene: THREE.Scene, private sparks: ParticlePool) {
     this.geometry.rotateX(-Math.PI / 2);
@@ -39,6 +47,18 @@ export class PickupFx {
       this.rings.push(ring);
       scene.add(ring);
     }
+    for (let i = 0; i < SHOCK_RINGS; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: "#00e5ff", transparent: true, depthWrite: false, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, fog: false,
+      });
+      const ring = new THREE.Mesh(this.geometry, mat);
+      ring.visible = false;
+      ring.renderOrder = 5;
+      ring.frustumCulled = false;
+      this.shockRings.push(ring);
+      scene.add(ring);
+    }
   }
 
   coin(x: number, y: number, z: number, vx: number, vz: number) {
@@ -51,6 +71,29 @@ export class PickupFx {
       e.life = 0.35 + r() * 0.15;
       e.size0 = 0.22 + r() * 0.15; e.size1 = 0.04; e.hot = 1;
       e.gravity = 5; e.drag = 2; e.floor = null;
+      this.sparks.emit(e);
+    }
+  }
+
+  shockwave(x: number, y: number, z: number) {
+    const i = this.shockNext;
+    this.shockNext = (this.shockNext + 1) % SHOCK_RINGS;
+    this.shockAge[i] = 0;
+    const ring = this.shockRings[i];
+    ring.material.color.copy(SHOCK_COLOR);
+    ring.position.set(x, y + 0.15, z);
+    ring.scale.setScalar(SHOCK_FROM);
+    ring.visible = true;
+
+    const e = this.e, r = Math.random;
+    e.c0.copy(SHOCK_CORE); e.c1.copy(SHOCK_COLOR);
+    for (let k = 0; k < 32; k++) {
+      const a = (k / 32) * Math.PI * 2 + r() * 0.2, sp = 12 + r() * 8;
+      e.x = x; e.y = y + 0.3 + r() * 0.4; e.z = z;
+      e.vx = Math.cos(a) * sp; e.vy = 0.5 + r() * 2.5; e.vz = Math.sin(a) * sp;
+      e.life = 0.45 + r() * 0.15;
+      e.size0 = 0.45 + r() * 0.25; e.size1 = 0.05; e.hot = 1;
+      e.gravity = 2; e.drag = 1.4; e.floor = null;
       this.sparks.emit(e);
     }
   }
@@ -91,6 +134,17 @@ export class PickupFx {
 
   /** Gli anelli seguono il kart (x, y, z). */
   update(dt: number, x: number, y: number, z: number) {
+    for (let i = 0; i < SHOCK_RINGS; i++) {
+      if (this.shockAge[i] >= SHOCK_LIFE) continue;
+      const a = (this.shockAge[i] = Math.min(SHOCK_LIFE, this.shockAge[i] + dt));
+      const t = a / SHOCK_LIFE;
+      const ring = this.shockRings[i];
+      if (t >= 1) { ring.visible = false; continue; }
+      const ease = 1 - Math.pow(1 - t, 3);
+      ring.scale.setScalar(SHOCK_FROM + (SHOCK_TO - SHOCK_FROM) * ease);
+      ring.material.opacity = (1 - t) * 0.85;
+    }
+
     for (let i = 0; i < RINGS; i++) {
       if (this.age[i] >= RING_LIFE) continue;
       const a = (this.age[i] = Math.min(RING_LIFE, this.age[i] + dt));
@@ -106,6 +160,7 @@ export class PickupFx {
 
   dispose() {
     for (const ring of this.rings) { this.scene.remove(ring); ring.material.dispose(); }
+    for (const ring of this.shockRings) { this.scene.remove(ring); ring.material.dispose(); }
     this.geometry.dispose();
   }
 }

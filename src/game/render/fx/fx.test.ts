@@ -144,6 +144,7 @@ describe("Fx", () => {
     const events = [
       { type: "coin" }, { type: "powerup", kind: "turbo" }, { type: "hit" }, { type: "smash" }, { type: "nearMiss" },
       { type: "driftEnd", seconds: 2, points: 40 }, { type: "fall" }, { type: "shieldUsed" }, { type: "boost" },
+      { type: "shockwave" },
       { type: "biome", index: 1 }, { type: "gameover" }, { type: "unknown" },
     ] as const;
     for (const e of events) fx.onEvent(e as never, st);

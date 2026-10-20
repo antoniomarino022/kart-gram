@@ -45,12 +45,26 @@ void main() {
   float xm = abs(vUv.x) * vHalf;
   float c = (vUv.y + xm * ${SWEEP.toFixed(2)}) / ${PERIOD.toFixed(2)} - uTime * ${(SCROLL / PERIOD).toFixed(3)};
   float f = fract(c);
-  float arrow = smoothstep(0.0, 0.06, f) * (1.0 - smoothstep(0.34, 0.42, f));
-  arrow *= 1.0 - smoothstep(0.62, 0.78, abs(vUv.x));
-  float edgeX = 1.0 - smoothstep(0.86, 1.0, abs(vUv.x));
-  float edgeY = smoothstep(0.0, 0.9, vUv.y) * (1.0 - smoothstep(uLength - 0.9, uLength, vUv.y));
-  vec3 col = mix(vBase, vArrow, arrow) * 1.08;
-  gl_FragColor = vec4(col, 0.94 * edgeX * edgeY);
+  // Freccia primaria
+  float arrow = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.36, 0.44, f));
+  arrow *= 1.0 - smoothstep(0.65, 0.85, abs(vUv.x));
+
+  // Bordo chevron luminoso dietro la punta
+  float chevronEdge = smoothstep(0.0, 0.04, f) * (1.0 - smoothstep(0.08, 0.14, f)) * (1.0 - smoothstep(0.6, 0.8, abs(vUv.x)));
+
+  // Bordi laterali neon e sfumatura testate
+  float edgeX = 1.0 - smoothstep(0.88, 1.0, abs(vUv.x));
+  float borderGlow = smoothstep(0.78, 0.95, abs(vUv.x)) * edgeX;
+  float edgeY = smoothstep(0.0, 0.7, vUv.y) * (1.0 - smoothstep(uLength - 0.7, uLength, vUv.y));
+
+  // Pulse dinamico su base e freccia
+  float pulse = 0.92 + 0.16 * sin(uTime * 6.0 + vUv.y * 1.5);
+  vec3 arrowCol = vArrow * (1.15 + chevronEdge * 0.8) * pulse;
+  vec3 baseCol = vBase * pulse + vec3(1.0, 0.8, 0.2) * borderGlow * 1.4;
+
+  vec3 col = mix(baseCol, arrowCol, arrow);
+  float alpha = clamp(0.96 * edgeX * edgeY + chevronEdge * 0.2, 0.0, 1.0);
+  gl_FragColor = vec4(col, alpha);
   #include <colorspace_fragment>
   #include <fog_fragment>
 }`;

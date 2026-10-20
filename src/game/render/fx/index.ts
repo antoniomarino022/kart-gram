@@ -76,6 +76,11 @@ export class Fx {
         this.pickup.powerup("shield", x, y, z, vx, vz);
         this.kick.kick(0.4, SHIELD_DIR);
         break;
+      case "shockwave":
+        this.pickup.shockwave(x, y, z);
+        this.kick.kick(0.7, { x: 0, y: 0.6, z: -0.8 });
+        this.kick.punchFov(5);
+        break;
       case "boost":
         this.pickup.boost(x, y, z, fx, fz, k.speed);
         this.lines.burst(1);

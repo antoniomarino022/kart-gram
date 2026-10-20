@@ -29,6 +29,7 @@ export class KartRig {
   private front: THREE.Object3D[] = [];
   private paints: Paint[] = [];
   private shield: THREE.Mesh;
+  private ghostAura: THREE.Mesh;
   private blob: THREE.Mesh;
   private owned: { dispose(): void }[] = [];
   private glowing = false;
@@ -62,6 +63,20 @@ export class KartRig {
     this.shield.visible = false;
     this.pivot.add(this.shield);
 
+    const auraGeo = new THREE.SphereGeometry(1.38, 20, 14);
+    const auraMat = new THREE.MeshBasicMaterial({
+      color: "#9d4edd",
+      transparent: true,
+      opacity: 0.32,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.ghostAura = new THREE.Mesh(auraGeo, auraMat);
+    this.ghostAura.position.y = 0.45;
+    this.ghostAura.visible = false;
+    this.pivot.add(this.ghostAura);
+
     const blobGeo = new THREE.CircleGeometry(1, 24).rotateX(-Math.PI / 2);
     const blobMat = new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false });
     this.owned.push(blobMat.map!);
@@ -70,7 +85,7 @@ export class KartRig {
     this.blob.scale.set(0.85, 1, 1.2);
     this.blob.renderOrder = 1;
     this.root.add(this.blob);
-    this.owned.push(shieldGeo, shieldMat, blobGeo, blobMat);
+    this.owned.push(shieldGeo, shieldMat, auraGeo, auraMat, blobGeo, blobMat);
   }
 
   private applyPaint(paint: Loadout["paint"], envMap: THREE.Texture | null) {
@@ -152,12 +167,19 @@ export class KartRig {
     if (opts.shield) this.shield.scale.setScalar(1 + Math.sin(opts.time * 4) * 0.04);
     this.blob.visible = !opts.falling;
 
+    this.ghostAura.visible = !!opts.ghost;
     if (opts.ghost) {
+      this.ghostAura.scale.set(
+        1.0 + Math.sin(opts.time * 6) * 0.05,
+        1.0 + Math.cos(opts.time * 7) * 0.06,
+        1.0 + Math.sin(opts.time * 5 + 1) * 0.05,
+      );
+      (this.ghostAura.material as THREE.MeshBasicMaterial).opacity = 0.28 + 0.12 * Math.sin(opts.time * 10);
       for (const p of this.paints) {
         p.mat.transparent = true;
-        p.mat.opacity = 0.45 + 0.15 * Math.sin(opts.time * 12);
+        p.mat.opacity = 0.40 + 0.18 * Math.sin(opts.time * 10);
         p.mat.emissive.set("#b388ff");
-        p.mat.emissiveIntensity = 0.6;
+        p.mat.emissiveIntensity = 0.7;
       }
       this.glowing = true;
     } else if (opts.turbo) {

@@ -38,3 +38,5 @@ export const updatePlayerSchema = z.object({
 });
 
 export const grantItemBodySchema = z.object({ itemId: itemIdSchema });
+
+export const updatePlayerUpgradesSchema = z.object({ upgrades: z.record(z.string().min(1).max(20), z.number().int().min(0).max(5)) });

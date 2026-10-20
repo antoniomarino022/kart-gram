@@ -84,13 +84,13 @@ export function surface(st: GameState) {
     if (it.consumed) continue;
     if (it.kind === "boost") {
       if (onBoostPad(st, it)) {
-        // La pedana è stata convertita in Jump Pad: lancia il kart in aria e dà una spinta
+        // La pedana lancia il kart in aria (salto puro, senza effetto boost)
         st.jumpTimer = CONFIG.jumpPad.duration;
         if (!it.entered) {
           it.entered = true;
           st.score += CONFIG.jumpPad.forwardBonus * multiplier(st);
           st.comboPoints++;
-          st.events.push({ type: "jump" }, { type: "boost" });
+          st.events.push({ type: "jump" });
         }
       }
     } else if (!inAir && it.kind === "ice" && k.s >= it.s && k.s <= it.s + it.length) ice = true;

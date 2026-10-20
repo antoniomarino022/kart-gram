@@ -29,6 +29,7 @@ const UPGRADES: { id: UpgradeId; name: string; icon: string; perLevel: string }[
   { id: "magnet", name: "Magnete", icon: "🧲", perLevel: "+1 s per livello" },
   { id: "slowmo", name: "Slow-mo", icon: "⏳", perLevel: "+0,5 s per livello" },
   { id: "x2", name: "x2 Score", icon: "✖️", perLevel: "+1 s per livello" },
+  { id: "ghost", name: "Ghost", icon: "👻", perLevel: "+0,5 s per livello" },
 ];
 
 interface Props {

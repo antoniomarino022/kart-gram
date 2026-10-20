@@ -131,7 +131,7 @@ describe("sim", () => {
     expect(ice.slip).toBeGreaterThan(dry.slip);
   });
 
-  it("a jump pad launches the kart and emits jump and boost events", () => {
+  it("a jump pad launches the kart and emits jump event", () => {
     const st = createGame(1, undefined, { spawnItems: false });
     st.track.items.push(pad({ id: 991, kind: "boost", s: 5, lateral: 0, radius: 3.5, length: 12 }));
     let jumps = 0, maxHeight = 0;
@@ -172,17 +172,17 @@ describe("sim", () => {
   it("a half-road boost pad only works on its side", () => {
     const center = createGame(1, undefined, { spawnItems: false });
     center.track.items.push(pad({ id: 992, kind: "boost", s: 5, lateral: 1.75, radius: 1.75, length: 12 }));
-    for (let i = 0; i < 60; i++) step(center, 0); // al centro: niente boost
-    expect(center.boostTimer).toBe(0);
+    for (let i = 0; i < 60; i++) step(center, 0); // al centro: niente jump
+    expect(center.jumpTimer).toBe(0);
 
     const st = createGame(1, undefined, { spawnItems: false });
     st.track.items.push(pad({ id: 993, kind: "boost", s: 12, lateral: 1.75, radius: 1.75, length: 12 }));
     for (let i = 0; i < 12; i++) step(st, 1); // un po' a sinistra
     for (let i = 0; i < 12; i++) step(st, -1); // di nuovo dritto, spostato a sinistra
     expect(st.kart.lateral).toBeGreaterThan(CONFIG.boost.minInside);
-    let boosted = false;
-    for (let i = 0; i < 60; i++) { step(st, 0); boosted ||= st.events.some((e) => e.type === "boost"); }
-    expect(boosted).toBe(true);
+    let jumped = false;
+    for (let i = 0; i < 60; i++) { step(st, 0); jumped ||= st.events.some((e) => e.type === "jump"); }
+    expect(jumped).toBe(true);
   });
 
   it("hitting a cone slows down and resets combo; turbo smashes instead", () => {

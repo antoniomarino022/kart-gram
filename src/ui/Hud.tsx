@@ -24,9 +24,10 @@ const POWERUPS: { kind: PowerupKind; label: string; icon: string; color: string 
 function fullDuration(kind: PowerupKind, upgrades: UpgradeLevels): number {
   if (kind === "shield" || kind === "heart" || kind === "shockwave") return 1;
   if (kind === "wide") return CONFIG.powerupBase.wide;
-  const base = CONFIG.powerupBase[kind] ?? 3;
-  const perLvl = CONFIG.upgradePerLevel[kind] ?? 0;
-  return base + (upgrades[kind] ?? 0) * perLvl;
+  const base = kind in CONFIG.powerupBase ? (CONFIG.powerupBase as Record<string, number>)[kind] : 3;
+  const perLvl = kind in CONFIG.upgradePerLevel ? (CONFIG.upgradePerLevel as Record<string, number>)[kind] : 0;
+  const upgradeLvl = kind in upgrades ? (upgrades as Record<string, number>)[kind] ?? 0 : 0;
+  return base + upgradeLvl * perLvl;
 }
 
 interface Props {

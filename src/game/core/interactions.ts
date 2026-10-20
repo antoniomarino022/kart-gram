@@ -44,7 +44,9 @@ function activatePowerup(st: GameState, kind: PowerupKind) {
   else if (kind === "shockwave") {
     triggerShockwave(st);
   } else {
-    st.powerups[kind] = CONFIG.powerupBase[kind] + (st.upgrades[kind] ?? 0) * (CONFIG.upgradePerLevel[kind] ?? 0);
+    const upgradeLvl = kind in st.upgrades ? (st.upgrades as Record<string, number>)[kind] ?? 0 : 0;
+    const perLvl = kind in CONFIG.upgradePerLevel ? (CONFIG.upgradePerLevel as Record<string, number>)[kind] ?? 0 : 0;
+    st.powerups[kind] = CONFIG.powerupBase[kind] + upgradeLvl * perLvl;
   }
 }
 

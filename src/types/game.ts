@@ -89,7 +89,7 @@ export type PlayerRow = typeof telegramUsers.$inferSelect;
 export type RunRow = typeof runs.$inferSelect;
 
 export type GrantSource = "coins" | "stars" | "admin";
-export type LeaderboardScope = "global" | "weekly";
+
 
 export interface IdParamContext {
   params: Promise<{ id: string }>;
@@ -119,3 +119,5 @@ export interface InvoiceRequest {
   title: string;
   description: string;
 }
+
+export type LeaderboardScope = 'score' | 'referrals';

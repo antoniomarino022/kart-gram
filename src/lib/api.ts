@@ -80,7 +80,7 @@ export const createStarsInvoice = (itemId: string) =>
 export const buyUpgrade = (upgradeId: UpgradeId) =>
   requestApi<Profile>("POST", "/upgrades", { upgradeId });
 
-export const getLeaderboard = (scope: "global" | "weekly") =>
+export const getLeaderboard = (scope: 'score' | 'referrals') =>
   requestApi<LeaderboardEntry[]>("GET", `/leaderboard?scope=${scope}`);
 
 // ---------------------------------------------------------------------------

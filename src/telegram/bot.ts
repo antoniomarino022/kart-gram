@@ -1,3 +1,4 @@
+import { redis } from '@/lib/redis';
 import { and, eq, or, sql } from "drizzle-orm";
 import { Markup, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
@@ -241,6 +242,9 @@ bot.start(async (ctx) => {
                 status: ReferralStatus.PENDING,
               })
               .onConflictDoNothing();
+            const now = new Date();
+            const ym = now.getUTCFullYear() + '-' + String(now.getUTCMonth() + 1).padStart(2, '0');
+            redis.zincrby('leaderboard:monthly:referrals:' + ym, 1, String(inviter.id)).catch(() => {});
           }
         }
       }

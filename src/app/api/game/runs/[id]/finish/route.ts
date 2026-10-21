@@ -6,6 +6,7 @@ import { finalScore, simulate, type UpgradeId } from "@/game/core/sim";
 import { requirePlayer } from "@/lib/auth";
 import { addCoins, buildProfile, lockPlayer } from "@/lib/game-helpers";
 import { bad, handle, HttpError } from "@/lib/http";
+import { redis, runFinishLimiter } from "@/lib/redis";
 import { finishRunBodySchema } from "@/schemas/game";
 import { CoinReason, ReferralStatus } from "@/types/enums";
 import type { FinishRunBody, IdParamContext, RunRow } from "@/types/game";
@@ -153,7 +154,7 @@ async function closeRun(userId: number, run: RunRow, { ticks, inputs }: FinishRu
 
     await qualifyPendingReferral(tx, userId);
 
-    return { newBest, coinsEarned: coins };
+    return { newBest, coinsEarned: coins, calculatedScore: score };
   });
 }
 
@@ -170,6 +171,18 @@ async function closeRun(userId: number, run: RunRow, { ticks, inputs }: FinishRu
 export const POST = handle(async (request: Request, context: IdParamContext) => {
   const player = await requirePlayer(request);
   const runId = await parseRunId(context);
+
+  // Rate Limiting anti-spam
+  try {
+    const { success } = await runFinishLimiter.limit(`user:${player.id}`);
+    if (!success) {
+      throw new HttpError(429, "Troppe richieste. Riprova tra poco.");
+    }
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    console.error("Rate limit check error:", err);
+  }
+
   const body = finishRunBodySchema.parse(await request.json());
 
   let run = await loadRun(player.id, runId);
@@ -205,6 +218,20 @@ export const POST = handle(async (request: Request, context: IdParamContext) => 
     throw new HttpError(409, "Partita già chiusa");
   }
 
+  // Aggiornamento classifica Redis (Sorted Set: ZADD)
+  if (result.calculatedScore > 0) {
+    try {
+      await redis.zadd(
+        ('leaderboard:monthly:score:' + new Date().getUTCFullYear() + '-' + String(new Date().getUTCMonth() + 1).padStart(2, '0')),
+        { gt: true },
+        { score: result.calculatedScore, member: String(player.id) }
+      );
+    } catch (err) {
+      console.error("Redis ZADD leaderboard error:", err);
+    }
+  }
+
   const profile = await buildProfile(player.id);
-  return { ...result, profile };
+  const { calculatedScore: _, ...cleanResult } = result;
+  return { ...cleanResult, profile };
 });

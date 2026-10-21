@@ -78,7 +78,7 @@ export const POST = handle(async (request: Request) => {
   const { wheels } = resolveEquipped(player.equipped, owned, allItems);
   const seed = randomInt(0, 2 ** 31 - 1);
 
-  await redis.set('player:' + authPlayer.id + ':active_run', '1', { ex: Math.ceil(RUN_MAX_MS / 1000) });
+  void redis.set('player:' + authPlayer.id + ':active_run', '1', { ex: Math.ceil(RUN_MAX_MS / 1000) }).catch(() => {});
   const [run] = await db
     .insert(runs)
     .values({ userId: authPlayer.id, seed, upgrades, wheels })

@@ -7,7 +7,7 @@ import type { finishRunBodySchema } from "@/schemas/game";
 export type { UpgradeId };
 
 export type Slot = "kart" | "paint" | "wheels" | "trail";
-export type RevivePay = "coins" | "stars" | "owned";
+export type RevivePay = 'coins' | 'stars' | 'owned' | 'ad';
 
 export interface Profile {
   userId: string;

@@ -15,7 +15,7 @@ export const buyItemBodySchema = z.object({ itemId: itemIdSchema });
 
 export const buyUpgradeBodySchema = z.object({ upgradeId: z.string().min(1).max(20) });
 
-export const reviveBodySchema = z.object({ pay: z.enum(["coins", "stars", "owned"]) });
+export const reviveBodySchema = z.object({ pay: z.enum(['coins', 'stars', 'owned', 'ad']) });
 
 export const finishRunBodySchema = z.object({
   // oltre la durata massima di una partita si rigioca solo fino a lì (il client non ha un tetto)

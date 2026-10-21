@@ -131,3 +131,5 @@ export async function payRevive(runId: string, pay: RevivePay): Promise<boolean>
 
   return true;
 }
+
+export const claimAdReward = () => requestApi<{ success: boolean; coinsEarned: number; profile: Profile }>('POST', '/ads/reward');

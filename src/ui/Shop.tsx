@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { buyWithStars, getProfile } from "@/lib/api";
+import { showRewardedAd } from "@/lib/ads";
+import { claimAdReward } from "@/lib/api";
 import type { CatalogItem, Profile } from "@/types/game";
 import { errorText } from "./errors";
 import { Screen } from "./kit";
@@ -22,6 +24,7 @@ interface Props {
 
 export function Shop({ profile, catalog, track, toast, onBack }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [adLoading, setAdLoading] = useState(false);
 
   async function buy(it: CatalogItem) {
     if (busy) return;
@@ -38,6 +41,28 @@ export function Shop({ profile, catalog, track, toast, onBack }: Props) {
     }
   }
 
+  const handleFreeCoins = async () => {
+    if (adLoading || busy) return;
+    setAdLoading(true);
+    try {
+      const res = await showRewardedAd();
+      if (!res.success) {
+        toast(res.error || "Video non completato");
+        return;
+      }
+      const data = await claimAdReward();
+      if (data.success) {
+        toast(`+${data.coinsEarned} Monete accreditate! 🪙`);
+        track(Promise.resolve(data.profile));
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      toast(e?.message || "Riprova tra poco");
+    } finally {
+      setAdLoading(false);
+    }
+  };
+
   // il backend segna lo starter pack tra gli oggetti posseduti una volta comprato
   const starter = catalog.find((i) => i.kind === "starter_pack" && !profile.owned.includes(i.id));
   const packs = catalog.filter((i) => i.kind === "coin_pack" && i.priceStars !== undefined);
@@ -46,6 +71,22 @@ export function Shop({ profile, catalog, track, toast, onBack }: Props) {
 
   return (
     <Screen title="Shop" coins={profile.coins} onBack={onBack}>
+
+      {/* Riquadro Ricompensa Sponsor Gratuita */}
+      <div className="box mb-4 flex items-center justify-between border-2 border-amber-500/30 bg-amber-500/10 p-3">
+        <div>
+          <div className="text-xl font-black text-amber-300">Monete Gratis 🎁</div>
+          <div className="text-sm opacity-80">Guarda un breve video sponsor</div>
+        </div>
+        <button
+          type="button"
+          onClick={handleFreeCoins}
+          disabled={adLoading}
+          className="btn btn-primary h-10 px-3 text-lg font-black bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-900"
+        >
+          {adLoading ? "…" : "+50 🪙"}
+        </button>
+      </div>
 
       {starter && (
         <div className="animate-pop relative mb-5 overflow-hidden rounded-[var(--ui-radius)] bg-ui-primary p-4 text-ui-primary-text">

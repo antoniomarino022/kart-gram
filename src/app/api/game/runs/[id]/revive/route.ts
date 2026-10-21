@@ -14,20 +14,20 @@ import { parseRunId } from "../params";
  * POST /api/game/runs/:id/revive
  *
  * Permette al giocatore di rianimarsi (una sola volta per partita) dopo un incidente o caduta.
- * Body: `{ pay: "coins" | "stars" | "owned" }`
+ * Body: `{ pay: "coins" | "stars" | "owned" | "ad" }`
  *
  * Modalità di pagamento:
  * - `"stars"`: crea una fattura Telegram Stars (`REVIVE_PRICE.stars = 5`) e restituisce `{ ok: true, invoiceLink }`;
  * - `"coins"`: scala `REVIVE_PRICE.coins = 500` monete in transazione e segna `run.revived = true`;
- * - `"owned"`: consuma 1 revive già posseduto dal giocatore (`player.revives - 1`) e segna `run.revived = true`.
- * Se le monete o i revive non bastano, restituisce `{ ok: false }`.
+ * - `"owned"`: consuma 1 revive già posseduto dal giocatore (`player.revives - 1`) e segna `run.revived = true`;
+ * - `"ad"`: ricompensa per visione sponsor pubblicitario (gratis, 1 sola volta a partita).
  */
 export const POST = handle(async (request: Request, context: IdParamContext) => {
   const player = await requirePlayer(request);
   const runId = await parseRunId(context);
   const { pay } = reviveBodySchema.parse(await request.json());
 
-  // Revive tramite Telegram Stars: genera il link fattura (il flag revived verrà impostato dal webhook)
+  // Revive tramite Telegram Stars: genera il link fattura
   if (pay === "stars") {
     const [run] = await db
       .select()
@@ -50,7 +50,7 @@ export const POST = handle(async (request: Request, context: IdParamContext) => 
     return { ok: true, invoiceLink };
   }
 
-  // Revive immediato tramite monete o revive già posseduto
+  // Revive immediato tramite monete, revive posseduto o sponsor (AD)
   return withTx(async (tx) => {
     const [run] = await tx
       .select()
@@ -69,13 +69,19 @@ export const POST = handle(async (request: Request, context: IdParamContext) => 
         return { ok: false };
       }
       await spendCoins(tx, player.id, locked.coins, REVIVE_PRICE.coins, CoinReason.REVIVE);
-    } else {
+    } else if (pay === "owned") {
       if (locked.revives <= 0) {
         return { ok: false };
       }
       await tx
         .update(telegramUsers)
         .set({ revives: sql`${telegramUsers.revives} - 1` })
+        .where(eq(telegramUsers.id, player.id));
+    } else if (pay === "ad") {
+      // Visione video sponsor confermata: incrementa contatore totale ads viste
+      await tx
+        .update(telegramUsers)
+        .set({ adsWatchedTotal: sql`${telegramUsers.adsWatchedTotal} + 1` })
         .where(eq(telegramUsers.id, player.id));
     }
 

@@ -31,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="h-full overflow-hidden">
         <QueryProvider>{children}</QueryProvider>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <Script src="https://sad.adsgram.ai/js/sad.min.js" strategy="afterInteractive" />
       </body>
     </html>
   );

@@ -251,7 +251,7 @@ export default function GameApp() {
       {boot === "ready" && data && profile && (
         <>
           {screen === "menu" && (
-            <Menu profile={profile} name={tgName} starting={starting} shopAvailable={data.catalogOk} onPlay={play} onOpen={setScreen} />
+            <Menu profile={profile} name={tgName} starting={starting} shopAvailable={data.catalogOk} onPlay={play} onOpen={setScreen} onProfileUpdate={(p) => track(Promise.resolve(p))} toast={show} />
           )}
           {screen === "playing" && game && <ScorePopups bus={popups} />}
           {screen === "playing" && game && (

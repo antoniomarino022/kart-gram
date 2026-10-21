@@ -1,10 +1,10 @@
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, lt, max } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, lt, max } from "drizzle-orm";
 import { db } from "@/db";
 import { referrals, runs, telegramUsers } from "@/db/schema";
 import { requirePlayer } from "@/lib/auth";
 import { playerName } from "@/lib/game-helpers";
 import { handle } from "@/lib/http";
-import { redis } from "@/lib/redis";
+import { redis, withRedisTimeout } from "@/lib/redis";
 import type { LeaderboardRow, LeaderboardScope } from "@/types/game";
 
 const LEADERBOARD_SIZE = 10;
@@ -18,57 +18,72 @@ function getCurrentMonthBounds() {
   return { start, nextMonth, yearMonth };
 }
 
+// Breve cache in RAM di 30 secondi per non sovraccaricare né DB né Redis se l'utente clicca più volte
+const localLeaderboardCache = new Map<string, { data: LeaderboardRow[]; expiresAt: number }>();
+
 /**
  * 1. Classifica Mensile Score (Punteggi):
- * Miglior score ottenuto nelle partite concluse nel mese corrente.
+ * Query Postgres veloce + warmup Redis non bloccante.
  */
 async function monthlyScoreRows(): Promise<LeaderboardRow[]> {
   const { start, nextMonth, yearMonth } = getCurrentMonthBounds();
+  const cacheKey = `score:${yearMonth}`;
+
+  const cached = localLeaderboardCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   const redisKey = `leaderboard:monthly:score:${yearMonth}`;
 
-  try {
-    const redisEntries = await redis.zrange<{ member: string; score: number }[]>(
+  // Prova Redis solo se risponde entro 150ms
+  const redisEntries = await withRedisTimeout(
+    redis.zrange<{ member: string; score: number }[]>(
       redisKey,
       0,
       LEADERBOARD_SIZE - 1,
       { rev: true, withScores: true }
-    );
+    ),
+    150
+  );
 
-    if (redisEntries && redisEntries.length > 0) {
-      const userIds = redisEntries.map((e) => Number(e.member)).filter((id) => !Number.isNaN(id));
-      if (userIds.length > 0) {
-        const users = await db
-          .select({
-            id: telegramUsers.id,
-            displayName: telegramUsers.displayName,
-            username: telegramUsers.username,
-            isBanned: telegramUsers.isBanned,
-          })
-          .from(telegramUsers)
-          .where(inArray(telegramUsers.id, userIds));
+  // Se Redis è pronto e ha dati, restituisci
+  if (redisEntries && redisEntries.length > 0) {
+    // Se abbiamo i dati in Redis, prendiamo i dati dal DB
+    const userIds = redisEntries.map((e) => Number(e.member)).filter((id) => !Number.isNaN(id));
+    if (userIds.length > 0) {
+      const users = await db
+        .select({
+          id: telegramUsers.id,
+          displayName: telegramUsers.displayName,
+          username: telegramUsers.username,
+          isBanned: telegramUsers.isBanned,
+        })
+        .from(telegramUsers);
 
-        const userMap = new Map(users.map((u) => [u.id, u]));
-        const rows: LeaderboardRow[] = [];
+      const userMap = new Map(users.map((u) => [u.id, u]));
+      const rows: LeaderboardRow[] = [];
 
-        for (const entry of redisEntries) {
-          const u = userMap.get(Number(entry.member));
-          if (u && !u.isBanned) {
-            rows.push({
-              userId: u.id,
-              displayName: u.displayName,
-              username: u.username,
-              score: entry.score,
-            });
-          }
+      for (const entry of redisEntries) {
+        const u = userMap.get(Number(entry.member));
+        if (u && !u.isBanned) {
+          rows.push({
+            userId: u.id,
+            displayName: u.displayName,
+            username: u.username,
+            score: entry.score,
+          });
         }
+      }
+
+      if (rows.length > 0) {
+        localLeaderboardCache.set(cacheKey, { data: rows, expiresAt: Date.now() + 30_000 });
         return rows;
       }
     }
-  } catch (err) {
-    console.error("Redis monthly score leaderboard error, fallback to DB:", err);
   }
 
-  // Fallback DB
+  // Altrimenti esegui la query Postgres (che è velocissima sulla Top 10)
   const bestScore = max(runs.score);
   const dbRows = await db
     .select({
@@ -91,22 +106,25 @@ async function monthlyScoreRows(): Promise<LeaderboardRow[]> {
     .orderBy(desc(bestScore))
     .limit(LEADERBOARD_SIZE);
 
-  // Warmup Redis
-  if (dbRows.length > 0) {
-    try {
-      const zaddItems = dbRows
-        .filter((r) => (r.score ?? 0) > 0)
-        .map((r) => ({ score: r.score!, member: String(r.userId) }));
+  localLeaderboardCache.set(cacheKey, { data: dbRows, expiresAt: Date.now() + 30_000 });
 
-      const [first, ...rest] = zaddItems;
-      if (first) {
-        await redis.zadd(redisKey, first, ...rest);
-        // Scadenza a 35 giorni
-        await redis.expire(redisKey, 35 * 24 * 3600);
+  // Popola Redis asincronamente in background (non blocca la risposta)
+  if (dbRows.length > 0) {
+    void (async () => {
+      try {
+        const zaddItems = dbRows
+          .filter((r) => (r.score ?? 0) > 0)
+          .map((r) => ({ score: r.score!, member: String(r.userId) }));
+
+        const [first, ...rest] = zaddItems;
+        if (first) {
+          await redis.zadd(redisKey, first, ...rest);
+          await redis.expire(redisKey, 35 * 24 * 3600);
+        }
+      } catch {
+        // Ignora silenziosamente errori di background warmup
       }
-    } catch (err) {
-      console.error("Redis warmup error:", err);
-    }
+    })();
   }
 
   return dbRows;
@@ -117,51 +135,61 @@ async function monthlyScoreRows(): Promise<LeaderboardRow[]> {
  */
 async function monthlyReferralRows(): Promise<LeaderboardRow[]> {
   const { start, nextMonth, yearMonth } = getCurrentMonthBounds();
+  const cacheKey = `ref:${yearMonth}`;
+
+  const cached = localLeaderboardCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   const redisKey = `leaderboard:monthly:referrals:${yearMonth}`;
 
-  try {
-    const redisEntries = await redis.zrange<{ member: string; score: number }[]>(
+  // Prova Redis entro 150ms
+  const redisEntries = await withRedisTimeout(
+    redis.zrange<{ member: string; score: number }[]>(
       redisKey,
       0,
       LEADERBOARD_SIZE - 1,
       { rev: true, withScores: true }
-    );
+    ),
+    150
+  );
 
-    if (redisEntries && redisEntries.length > 0) {
-      const userIds = redisEntries.map((e) => Number(e.member)).filter((id) => !Number.isNaN(id));
-      if (userIds.length > 0) {
-        const users = await db
-          .select({
-            id: telegramUsers.id,
-            displayName: telegramUsers.displayName,
-            username: telegramUsers.username,
-            isBanned: telegramUsers.isBanned,
-          })
-          .from(telegramUsers)
-          .where(inArray(telegramUsers.id, userIds));
+  if (redisEntries && redisEntries.length > 0) {
+    const userIds = redisEntries.map((e) => Number(e.member)).filter((id) => !Number.isNaN(id));
+    if (userIds.length > 0) {
+      const users = await db
+        .select({
+          id: telegramUsers.id,
+          displayName: telegramUsers.displayName,
+          username: telegramUsers.username,
+          isBanned: telegramUsers.isBanned,
+        })
+        .from(telegramUsers);
 
-        const userMap = new Map(users.map((u) => [u.id, u]));
-        const rows: LeaderboardRow[] = [];
+      const userMap = new Map(users.map((u) => [u.id, u]));
+      const rows: LeaderboardRow[] = [];
 
-        for (const entry of redisEntries) {
-          const u = userMap.get(Number(entry.member));
-          if (u && !u.isBanned) {
-            rows.push({
-              userId: u.id,
-              displayName: u.displayName,
-              username: u.username,
-              score: entry.score,
-            });
-          }
+      for (const entry of redisEntries) {
+        const u = userMap.get(Number(entry.member));
+        if (u && !u.isBanned) {
+          rows.push({
+            userId: u.id,
+            displayName: u.displayName,
+            username: u.username,
+            score: entry.score,
+          });
         }
+      }
+
+      if (rows.length > 0) {
+        localLeaderboardCache.set(cacheKey, { data: rows, expiresAt: Date.now() + 30_000 });
         return rows;
       }
     }
-  } catch (err) {
-    console.error("Redis monthly referrals leaderboard error, fallback to DB:", err);
   }
 
-  // Fallback DB: conta gli invitati registrati nel mese
+  // Fallback DB Postgres
   const refCount = count(referrals.id);
   const dbRows = await db
     .select({
@@ -183,21 +211,24 @@ async function monthlyReferralRows(): Promise<LeaderboardRow[]> {
     .orderBy(desc(refCount))
     .limit(LEADERBOARD_SIZE);
 
-  // Warmup Redis
-  if (dbRows.length > 0) {
-    try {
-      const zaddItems = dbRows
-        .filter((r) => (r.score ?? 0) > 0)
-        .map((r) => ({ score: r.score!, member: String(r.userId) }));
+  localLeaderboardCache.set(cacheKey, { data: dbRows, expiresAt: Date.now() + 30_000 });
 
-      const [first, ...rest] = zaddItems;
-      if (first) {
-        await redis.zadd(redisKey, first, ...rest);
-        await redis.expire(redisKey, 35 * 24 * 3600);
+  if (dbRows.length > 0) {
+    void (async () => {
+      try {
+        const zaddItems = dbRows
+          .filter((r) => (r.score ?? 0) > 0)
+          .map((r) => ({ score: r.score!, member: String(r.userId) }));
+
+        const [first, ...rest] = zaddItems;
+        if (first) {
+          await redis.zadd(redisKey, first, ...rest);
+          await redis.expire(redisKey, 35 * 24 * 3600);
+        }
+      } catch {
+        // Ignora errori di background
       }
-    } catch (err) {
-      console.error("Redis referrals warmup error:", err);
-    }
+    })();
   }
 
   return dbRows;
@@ -205,8 +236,6 @@ async function monthlyReferralRows(): Promise<LeaderboardRow[]> {
 
 /**
  * GET /api/game/leaderboard?scope=score|referrals
- *
- * Restituisce la Top 10 mensile richiesta (miglior punteggio o più condivisioni).
  */
 export const GET = handle(async (request: Request) => {
   await requirePlayer(request);

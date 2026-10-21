@@ -231,6 +231,7 @@ export const POST = handle(async (request: Request, context: IdParamContext) => 
     }
   }
 
+  await redis.del('player:' + player.id + ':active_run').catch(() => {});
   const profile = await buildProfile(player.id);
   const { calculatedScore: _, ...cleanResult } = result;
   return { ...cleanResult, profile };

@@ -3,6 +3,8 @@
  * Documentazione: https://adsgram.ai
  */
 
+import { requestApi } from "./api";
+
 declare global {
   interface Window {
     Adsgram?: {
@@ -18,25 +20,48 @@ export interface ShowAdResult {
   error?: string;
 }
 
+let cachedBlockId: string | null = null;
+
+async function getBlockId(): Promise<string> {
+  if (cachedBlockId) return cachedBlockId;
+
+  // Prova prima la variabile pubblica se presente
+  const envId = (process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID || "").trim();
+  if (envId) {
+    cachedBlockId = envId;
+    return envId;
+  }
+
+  // Altrimenti recupera l'ID dal server (dove su Vercel c'è ADSGRAM_BLOCK_ID)
+  try {
+    const res = await requestApi<{ blockId: string }>("GET", "/ads/config");
+    if (res?.blockId) {
+      cachedBlockId = res.blockId;
+      return res.blockId;
+    }
+  } catch (err) {
+    console.warn("[ads] Impossibile recuperare blockId dal server:", err);
+  }
+
+  return "";
+}
+
 /**
  * Mostra un annuncio pubblicitario Rewarded Video di Adsgram.
  * La ricompensa viene sbloccata SOLO ed ESCLUSIVAMENTE se l'utente
  * guarda l'intero video sponsorizzato fino alla fine.
- *
- * Il Block ID viene letto esclusivamente dalla variabile d'ambiente NEXT_PUBLIC_ADSGRAM_BLOCK_ID
- * senza valori hardcoded nel codice sorgente.
  */
 export async function showRewardedAd(): Promise<ShowAdResult> {
   if (typeof window === "undefined") {
     return { success: false, error: "Ambiente non supportato" };
   }
 
-  const blockId = String(process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID || "").trim();
+  const blockId = await getBlockId();
 
   if (!blockId) {
     return {
       success: false,
-      error: "Block ID non configurato nelle variabili d'ambiente",
+      error: "Block ID non configurato (imposta ADSGRAM_BLOCK_ID su Vercel o in .env)",
     };
   }
 

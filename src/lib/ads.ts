@@ -13,9 +13,6 @@ declare global {
   }
 }
 
-
-export const ADSGRAM_BLOCK_ID = process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID!;
-
 export interface ShowAdResult {
   success: boolean;
   error?: string;
@@ -25,24 +22,36 @@ export interface ShowAdResult {
  * Mostra un annuncio pubblicitario Rewarded Video di Adsgram.
  * La ricompensa viene sbloccata SOLO ed ESCLUSIVAMENTE se l'utente
  * guarda l'intero video sponsorizzato fino alla fine.
+ *
+ * Il Block ID viene letto esclusivamente dalla variabile d'ambiente NEXT_PUBLIC_ADSGRAM_BLOCK_ID
+ * senza valori hardcoded nel codice sorgente.
  */
 export async function showRewardedAd(): Promise<ShowAdResult> {
   if (typeof window === "undefined") {
     return { success: false, error: "Ambiente non supportato" };
   }
 
+  const blockId = String(process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID || "").trim();
+
+  if (!blockId) {
+    return {
+      success: false,
+      error: "Block ID non configurato nelle variabili d'ambiente",
+    };
+  }
+
   // Verifica presenza SDK Adsgram
   if (!window.Adsgram) {
     return {
       success: false,
-      error: "SDK pubblicitario non disponibile o bloccato da AdBlock",
+      error: "SDK pubblicitario non caricato. Riprova da Telegram.",
     };
   }
 
   try {
-    const isDebug = process.env.NODE_ENV !== "production" || ADSGRAM_BLOCK_ID === "int-test";
+    const isDebug = process.env.NODE_ENV !== "production";
     const adController = window.Adsgram.init({
-      blockId: ADSGRAM_BLOCK_ID,
+      blockId,
       debug: isDebug,
     });
 
@@ -54,7 +63,7 @@ export async function showRewardedAd(): Promise<ShowAdResult> {
 
     return {
       success: false,
-      error: result?.description || "Video interrotto prima del termine",
+      error: result?.description || "Video non completato",
     };
   } catch (err: unknown) {
     const errorObj = err as { description?: string; message?: string };

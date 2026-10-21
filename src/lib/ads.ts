@@ -13,9 +13,8 @@ declare global {
   }
 }
 
-// Inserisci qui il tuo Block ID da https://adsgram.ai
-// Se vuoto o in sviluppo locale, usa una modalità demo simulata
-export const ADSGRAM_BLOCK_ID = process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID || "int-12345";
+
+export const ADSGRAM_BLOCK_ID = process.env.NEXT_PUBLIC_ADSGRAM_BLOCK_ID!;
 
 export interface ShowAdResult {
   success: boolean;
@@ -24,33 +23,42 @@ export interface ShowAdResult {
 
 /**
  * Mostra un annuncio pubblicitario Rewarded Video di Adsgram.
- * In ambiente browser normale o se Adsgram non è configurato, simula l'annuncio dopo 2 secondi
- * per permetterti di testare comodamente senza errori bloccanti.
+ * La ricompensa viene sbloccata SOLO ed ESCLUSIVAMENTE se l'utente
+ * guarda l'intero video sponsorizzato fino alla fine.
  */
 export async function showRewardedAd(): Promise<ShowAdResult> {
   if (typeof window === "undefined") {
     return { success: false, error: "Ambiente non supportato" };
   }
 
-  // Se siamo in Telegram e Adsgram SDK è caricato
-  if (window.Adsgram && ADSGRAM_BLOCK_ID && ADSGRAM_BLOCK_ID !== "int-12345") {
-    try {
-      const adController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
-      const result = await adController.show();
-      if (result.done) {
-        return { success: true };
-      }
-      return { success: false, error: result.description || "Video non completato" };
-    } catch (err: unknown) {
-      const errorObj = err as { description?: string };
-      return { success: false, error: errorObj?.description || "Errore riproduzione annuncio" };
-    }
+  // Verifica presenza SDK Adsgram
+  if (!window.Adsgram) {
+    return {
+      success: false,
+      error: "SDK pubblicitario non disponibile o bloccato da AdBlock",
+    };
   }
 
-  // Modalità simulazione / test (per sviluppo rapido)
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true });
-    }, 1500);
-  });
+  try {
+    const isDebug = process.env.NODE_ENV !== "production" || ADSGRAM_BLOCK_ID === "int-test";
+    const adController = window.Adsgram.init({
+      blockId: ADSGRAM_BLOCK_ID,
+      debug: isDebug,
+    });
+
+    const result = await adController.show();
+
+    if (result && result.done) {
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: result?.description || "Video interrotto prima del termine",
+    };
+  } catch (err: unknown) {
+    const errorObj = err as { description?: string; message?: string };
+    const desc = errorObj?.description || errorObj?.message || "Annuncio non completato";
+    return { success: false, error: desc };
+  }
 }
